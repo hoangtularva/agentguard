@@ -3,7 +3,7 @@ import { createDatabase } from "@/server/db/client";
 import { DEFAULT_POLICY_ID, DEMO_AGENT_ID } from "@/server/db/seed";
 import { dbPolicyResolver } from "@/server/enforcement/policy-store";
 import { EnforcementPoint } from "@/server/enforcement/pep";
-import type { Corpus } from "@/server/tools/executors";
+import type { Corpus } from "@/server/core/types";
 
 export async function setup(opts: { now?: () => Date } = {}) {
   const db = await createDatabase({ pgliteDir: "memory" });

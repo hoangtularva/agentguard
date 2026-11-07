@@ -8,9 +8,9 @@
  * leaves the process.
  */
 import { digest, redactString } from "@/server/core/redact";
-import type { CorpusItem } from "@/server/core/types";
+import type { Corpus, CorpusItem } from "@/server/core/types";
 
-export type Corpus = Map<string, CorpusItem>;
+export type { Corpus };
 
 export interface SandboxEffect {
   tool: string;
