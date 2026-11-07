@@ -411,7 +411,11 @@ export class EnforcementPoint {
     }
   }
 
-  /** Execute inside a transaction with a unique idempotency key. */
+  /**
+   * Execute inside a transaction with a unique idempotency key. When `outerTx` is given
+   * the execution joins it, so that claim + side effects + execution record commit or
+   * roll back together.
+   */
   private async runExecution(
     sessionId: string,
     toolCallId: string,
@@ -420,10 +424,11 @@ export class EnforcementPoint {
     idempotencyKey: string,
     approvalId: string | null,
     actorId: string,
+    outerTx?: DB,
   ): Promise<ExecResult> {
     const executor = getExecutor(tool);
     if (!executor) throw new Error(`No executor for ${tool}`);
-    return this.db.transaction(async (tx) => {
+    const body = async (tx: DB) => {
       const exec = await executor(args, {
         sessionId,
         toolCallId,
@@ -453,7 +458,8 @@ export class EnforcementPoint {
         payload: { tool, summary: exec.summary, approvalId, idempotencyKey },
       });
       return exec;
-    });
+    };
+    return outerTx ? body(outerTx) : this.db.transaction(async (tx) => body(tx as unknown as DB));
   }
 
   /**
@@ -500,7 +506,7 @@ export class EnforcementPoint {
 
     type Prepared =
       | { kind: "deny"; code: ApprovalDenyCode; message: string; sessionId?: string; toolCallId?: string }
-      | { kind: "go"; sessionId: string; toolCallId: string; tool: string; args: Record<string, unknown>; agentId: string };
+      | { kind: "go"; sessionId: string; toolCallId: string; tool: string; exec: ExecResult };
 
     let prepared: Prepared;
     try {
@@ -574,37 +580,40 @@ export class EnforcementPoint {
           .returning({ id: s.approvals.id });
         if (claimed.length !== 1)
           return { kind: "deny", code: "APPROVAL_ALREADY_USED", message: "Approval was claimed concurrently.", ...ctx } as Prepared;
-        return { kind: "go", ...ctx, tool: tc.tool, args: stored, agentId: tc.agentId } as Prepared;
+
+        // Execute in the SAME transaction: if the side effect or the uniquely-keyed
+        // execution record fails, the claim rolls back too (no "used but never ran" state).
+        const exec = await this.runExecution(
+          tc.sessionId,
+          tc.id,
+          tc.tool,
+          stored,
+          params.idempotencyKey,
+          params.approvalId,
+          params.actorId,
+          tx as unknown as DB,
+        );
+        await writeAudit(tx, {
+          type: "approval.executed",
+          sessionId: tc.sessionId,
+          toolCallId: tc.id,
+          actorId: params.actorId,
+          decision: "ALLOW",
+          payload: { approvalId: params.approvalId },
+        });
+        return { kind: "go", ...ctx, tool: tc.tool, exec } as Prepared;
       });
     } catch (err) {
-      return deny("EXECUTION_CONFLICT", `Execution conflict: ${(err as Error).message}`);
+      // Unique constraint on executions(tool_call_id | idempotency_key), serialization or
+      // connection failure: the whole transaction (claim + effects) was rolled back.
+      const msg = (err as Error).message;
+      const dup = /duplicate key|unique/i.test(msg + String((err as { cause?: unknown }).cause ?? ""));
+      return deny(dup ? "APPROVAL_ALREADY_USED" : "EXECUTION_CONFLICT", `${dup ? "Duplicate execution prevented" : "Execution failed and was rolled back"}: ${msg}`);
     }
 
     if (prepared.kind === "deny") return deny(prepared.code, prepared.message, prepared.sessionId, prepared.toolCallId);
-
-    try {
-      const exec = await this.runExecution(
-        prepared.sessionId,
-        prepared.toolCallId,
-        prepared.tool,
-        prepared.args,
-        params.idempotencyKey,
-        params.approvalId,
-        params.actorId,
-      );
-      await writeAudit(this.db, {
-        type: "approval.executed",
-        sessionId: prepared.sessionId,
-        toolCallId: prepared.toolCallId,
-        actorId: params.actorId,
-        decision: "ALLOW",
-        payload: { approvalId: params.approvalId },
-      });
-      return { ok: true, replayed: false, toolCallId: prepared.toolCallId, summary: exec.summary, output: exec.output, exec };
-    } catch (err) {
-      // Unique constraint on executions(tool_call_id | idempotency_key) => duplicate attempt.
-      return deny("APPROVAL_ALREADY_USED", `Duplicate execution prevented: ${(err as Error).message}`, prepared.sessionId, prepared.toolCallId);
-    }
+    const exec = prepared.exec;
+    return { ok: true, replayed: false, toolCallId: prepared.toolCallId, summary: exec.summary, output: exec.output, exec };
   }
 }
 

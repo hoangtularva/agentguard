@@ -23,6 +23,12 @@ export async function createDatabase(opts: { url?: string; pgliteDir?: string; s
     const { migrate } = await import("drizzle-orm/node-postgres/migrator");
     const pg = await import("pg");
     const pool = new pg.default.Pool({ connectionString: url, max: Number(process.env.DATABASE_POOL_MAX ?? 10) });
+    // An idle client killed by the server (restart, pg_terminate_backend, network) emits
+    // 'error' on the pool. Without a listener Node treats it as uncaught and crashes the
+    // process. The pool drops the dead client and reconnects on the next query.
+    pool.on("error", (err) => {
+      console.error("[db] idle client error (will reconnect):", err.message);
+    });
     const d = drizzle(pool, { schema });
     await migrate(d, { migrationsFolder: MIGRATIONS });
     db = d as unknown as DB;
