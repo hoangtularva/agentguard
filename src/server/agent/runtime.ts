@@ -22,10 +22,11 @@ export interface AgentRunResult {
 
 /**
  * What to do when the PEP returns REVIEW:
- *  - "pause": stop the run (interactive Playground; the human decides in the Approval Inbox)
+ *  - "pause": stop the run at the first action needing approval
+ *  - "defer": leave the action pending (human decides later in the Approval Inbox) and let the agent continue
  *  - a function: synchronous reviewer (benchmark's simulated human) that returns the observation
  */
-export type ReviewHandler = "pause" | ((r: EnforcementResult, step: { tool: string; args: unknown; injected?: boolean }) => Promise<{ observation: Observation; outcome: NonNullable<TraceStep["approval"]>["outcome"] }>);
+export type ReviewHandler = "pause" | "defer" | ((r: EnforcementResult, step: { tool: string; args: unknown; injected?: boolean }) => Promise<{ observation: Observation; outcome: NonNullable<TraceStep["approval"]>["outcome"] }>);
 
 function blockedText(r: EnforcementResult) {
   const reasons = r.decision.reasons
@@ -53,6 +54,8 @@ export async function runAgent(params: {
   const tools = session.mandate.allowedTools.map((t) => getTool(t)).filter((t) => !!t);
   planner.start(params.prompt, tools);
   const steps: TraceStep[] = [];
+  let deferred = 0;
+  const done = (finalMessage: string): AgentRunResult => ({ sessionId: session.id, status: deferred > 0 ? "awaiting_approval" : "completed", steps, finalMessage });
 
   for (let i = 0; i < maxSteps; i++) {
     let step;
@@ -61,7 +64,7 @@ export async function runAgent(params: {
     } catch (err) {
       return { sessionId: session.id, status: "failed", steps, finalMessage: `Planner error: ${(err as Error).message}` };
     }
-    if (step.kind === "final") return { sessionId: session.id, status: "completed", steps, finalMessage: step.text };
+    if (step.kind === "final") return done(step.text);
 
     const result = await pep.enforce(session, {
       tool: step.tool,
@@ -74,6 +77,14 @@ export async function runAgent(params: {
     if (result.decision.decision === "BLOCK") {
       observation = { status: "blocked", text: blockedText(result) };
     } else if (result.decision.decision === "REVIEW") {
+      if (params.onReview === "defer") {
+        observation = { status: "pending_approval", text: "This action is awaiting human approval; it has NOT been executed. Continue with other work." };
+        approval = { outcome: "paused" };
+        deferred += 1;
+        planner.observe(step.stepId, observation);
+        steps.push({ index: i, tool: step.tool, args: step.args, rationale: step.rationale, injected: step.injected, result, observation, approval });
+        continue;
+      }
       if (params.onReview === "pause") {
         observation = { status: "pending_approval", text: "Awaiting human approval." };
         approval = { outcome: "paused" };
@@ -94,5 +105,5 @@ export async function runAgent(params: {
     planner.observe(step.stepId, observation);
     steps.push({ index: i, tool: step.tool, args: step.args, rationale: step.rationale, injected: step.injected, result, observation, approval });
   }
-  return { sessionId: session.id, status: "completed", steps, finalMessage: "Stopped: step limit reached." };
+  return done("Stopped: step limit reached.");
 }
