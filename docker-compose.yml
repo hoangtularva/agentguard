@@ -1,0 +1,35 @@
+# Local demo stack: PostgreSQL 16 + AgentGuard.
+#   cp .env.example .env    # then set AUTH_SECRET (and optionally ANTHROPIC_API_KEY)
+#   docker compose up --build
+#   open http://localhost:3000
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: agentguard
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-agentguard-local-only}
+      POSTGRES_DB: agentguard
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agentguard -d agentguard"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    # Not published to the host: only the app container talks to the database.
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://agentguard:${POSTGRES_PASSWORD:-agentguard-local-only}@db:5432/agentguard
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in .env (>=16 chars)}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      AGENTGUARD_LLM_MODEL: ${AGENTGUARD_LLM_MODEL:-claude-opus-5-5}
+    ports:
+      - "127.0.0.1:3000:3000"
+
+volumes:
+  pgdata:
