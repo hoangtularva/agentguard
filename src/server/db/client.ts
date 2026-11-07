@@ -22,7 +22,7 @@ export async function createDatabase(opts: { url?: string; pgliteDir?: string; s
     const { drizzle } = await import("drizzle-orm/node-postgres");
     const { migrate } = await import("drizzle-orm/node-postgres/migrator");
     const pg = await import("pg");
-    const pool = new pg.default.Pool({ connectionString: url, max: 10 });
+    const pool = new pg.default.Pool({ connectionString: url, max: Number(process.env.DATABASE_POOL_MAX ?? 10) });
     const d = drizzle(pool, { schema });
     await migrate(d, { migrationsFolder: MIGRATIONS });
     db = d as unknown as DB;
