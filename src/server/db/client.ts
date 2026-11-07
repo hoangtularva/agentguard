@@ -5,7 +5,7 @@ import { seedDatabase } from "./seed";
 
 export type DB = PgDatabase<PgQueryResultHKT, typeof schema>;
 
-const MIGRATIONS = path.join(process.cwd(), "drizzle");
+const MIGRATIONS = path.join(/* turbopackIgnore: true */ process.cwd(), "drizzle");
 
 /**
  * Database selection:
@@ -31,7 +31,8 @@ export async function createDatabase(opts: { url?: string; pgliteDir?: string; s
     const { drizzle } = await import("drizzle-orm/pglite");
     const { migrate } = await import("drizzle-orm/pglite/migrator");
     const dir = opts.pgliteDir ?? process.env.PGLITE_DIR ?? ".data/pglite";
-    const client = dir === "memory" ? new PGlite() : new PGlite(path.resolve(dir));
+    if (dir !== "memory") (await import("node:fs")).mkdirSync(path.resolve(/* turbopackIgnore: true */ dir), { recursive: true });
+    const client = dir === "memory" ? new PGlite() : new PGlite(path.resolve(/* turbopackIgnore: true */ dir));
     const d = drizzle(client, { schema });
     await migrate(d, { migrationsFolder: MIGRATIONS });
     db = d as unknown as DB;
