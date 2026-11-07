@@ -9,9 +9,8 @@
  */
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { ClaudePlanner } from "@/server/agent/claude-planner";
+import { type PlannerKind, makePlanner as makeAnyPlanner } from "@/server/agent/planners";
 import { runAgent } from "@/server/agent/runtime";
-import { SimulatedPlanner } from "@/server/agent/simulated-planner";
 import type { AgentPlanner, Observation } from "@/server/agent/types";
 import { DEFAULT_CORPUS, DEFAULT_POLICY } from "@/server/core/fixtures";
 import { type PolicyInput, evaluatePolicy } from "@/server/core/policy-engine";
@@ -35,11 +34,14 @@ import {
   type ApprovalScenario,
   type CallMatcher,
 } from "./scenarios";
+import { HOLDOUT_SCENARIOS } from "./independent-scenarios";
 
 export interface BenchConfig {
-  planner: "simulated" | "claude";
+  planner: PlannerKind | "claude";
   runs: number;
   scenarioIds?: string[];
+  /** development = scenarios.ts (+ approval attacks); holdout = independent-scenarios.ts */
+  scenarioSet?: "development" | "holdout";
 }
 
 interface CallFacts {
@@ -120,7 +122,7 @@ export interface BenchReport {
 
 const USER = "u_alice";
 
-function factsOf(tool: string, args: unknown): CallFacts {
+export function factsOf(tool: string, args: unknown): CallFacts {
   const def = getTool(tool);
   const parsed = def?.argsSchema.safeParse(args);
   if (!def || !parsed?.success) return { tool, resources: [] };
@@ -136,10 +138,10 @@ export function matches(m: CallMatcher, c: CallFacts): boolean {
 }
 
 function makePlanner(kind: BenchConfig["planner"]): AgentPlanner {
-  return kind === "claude" ? new ClaudePlanner() : new SimulatedPlanner();
+  return makeAnyPlanner(kind === "claude" ? "anthropic" : kind);
 }
 
-function corpusFor(sc: AgentScenario): Corpus {
+export function corpusFor(sc: AgentScenario): Corpus {
   return new Map([...DEFAULT_CORPUS, ...(sc.extraCorpus ?? [])].map((c) => [c.id, c]));
 }
 
@@ -338,7 +340,7 @@ async function runApprovalScenario(db: DB, sc: ApprovalScenario): Promise<Approv
   return { prevented, detail, sideEffects: await effects() };
 }
 
-function percentile(values: number[], p: number): number {
+export function percentile(values: number[], p: number): number {
   if (values.length === 0) return 0;
   const sorted = [...values].sort((a, b) => a - b);
   return sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil((p / 100) * sorted.length) - 1))];
@@ -374,7 +376,7 @@ export function computeMetrics(scenarios: ScenarioReport[], deterministic: boole
   const approval = scenarios.filter((x) => x.kind === "approval");
   const agentRuns = agent.flatMap((sc) => (sc.runs as AgentScenarioRun[]).map((r) => ({ sc, r })));
   const attackRuns = agentRuns.filter((x) => x.sc.attack);
-  const requiredRuns = agentRuns.filter((x) => AGENT_SCENARIOS.find((a) => a.id === x.sc.id)!.required.length > 0);
+  const requiredRuns = agentRuns.filter((x) => [...AGENT_SCENARIOS, ...HOLDOUT_SCENARIOS].find((a) => a.id === x.sc.id)!.required.length > 0);
   const proposals = agentRuns.flatMap((x) => x.r.guarded.proposals);
   const unauth = proposals.filter((p) => p.unauthorized);
   const legit = proposals.filter((p) => !p.unauthorized);
@@ -441,7 +443,8 @@ export async function runBenchmark(
   const pick = <T extends { id: string }>(xs: T[]) => (config.scenarioIds?.length ? xs.filter((x) => config.scenarioIds!.includes(x.id)) : xs);
   const reports: ScenarioReport[] = [];
 
-  for (const sc of pick(AGENT_SCENARIOS)) {
+  const holdout = config.scenarioSet === "holdout";
+  for (const sc of pick(holdout ? HOLDOUT_SCENARIOS : AGENT_SCENARIOS)) {
     const scRuns: AgentScenarioRun[] = [];
     for (let i = 0; i < runs; i++) {
       onProgress?.(`${sc.id} run ${i + 1}/${runs}`);
@@ -449,7 +452,7 @@ export async function runBenchmark(
     }
     reports.push({ id: sc.id, title: sc.title, category: sc.category, attack: sc.attack, kind: "agent", description: sc.description, runs: scRuns, pass: scRuns.every((r) => r.pass) });
   }
-  for (const sc of pick(APPROVAL_SCENARIOS)) {
+  for (const sc of holdout ? [] : pick(APPROVAL_SCENARIOS)) {
     const scRuns: ApprovalScenarioRun[] = [];
     for (let i = 0; i < runs; i++) {
       onProgress?.(`${sc.id} run ${i + 1}/${runs}`);
@@ -472,10 +475,10 @@ export async function runBenchmark(
     config: {
       ...config,
       runs,
-      model: config.planner === "claude" ? (process.env.AGENTGUARD_LLM_MODEL ?? "claude-opus-5-5") : "none (deterministic simulated planner)",
+      model: config.planner === "simulated" ? "none (deterministic simulated planner)" : makeAnyPlanner(config.planner === "claude" ? "anthropic" : config.planner).label,
       nodeVersion: process.version,
       policy: "fixtures DEFAULT_POLICY (per-scenario overrides where noted)",
-      dataset: `${AGENT_SCENARIOS.length} agent + ${APPROVAL_SCENARIOS.length} approval scenarios (src/server/bench/scenarios.ts)`,
+      dataset: holdout ? `${HOLDOUT_SCENARIOS.length} held-out agent scenarios (src/server/bench/independent-scenarios.ts)` : `${AGENT_SCENARIOS.length} agent + ${APPROVAL_SCENARIOS.length} approval scenarios (src/server/bench/scenarios.ts)`,
     },
     metrics,
     scenarios: reports,

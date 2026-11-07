@@ -31,7 +31,14 @@ type Step = {
   output: string;
   evalLatencyMs: number;
 };
-type RunResult = { sessionId: string; status: string; finalMessage: string; planner: string; steps: Step[]; mandate: { allowedTools: string[]; resourceScope: string[]; destinations: string[] } };
+type LlmTurn = { turn: number; latencyMs: number; inputTokens: number; outputTokens: number; toolCalls: number; stopReason: string; error?: string };
+export type Availability = {
+  simulated: { available: boolean };
+  ollama: { available: boolean; reachable: boolean; host: string; version?: string; model: string; modelPresent: boolean; models: string[]; error?: string };
+  anthropic: { available: boolean; model: string };
+};
+type PlannerKind = "simulated" | "ollama" | "anthropic";
+type RunResult = { sessionId: string; status: string; finalMessage: string; planner: string; provider: PlannerKind; model: string | null; llmTurns: LlmTurn[]; totalMs: number; steps: Step[]; mandate: { allowedTools: string[]; resourceScope: string[]; destinations: string[] } };
 
 const TOOLS = [
   { name: "read_documents", label: "Read Documents", risk: "low", icon: FileText },
@@ -77,6 +84,18 @@ const ORIGIN_LABEL: Record<string, { label: string; tone: "allow" | "block" | "r
   untrusted_external: { label: "retrieved content (untrusted)", tone: "block" },
   model_generated: { label: "model-generated", tone: "review" },
 };
+
+function ProviderHint({ planner, availability }: { planner: PlannerKind; availability: Availability }) {
+  if (planner === "simulated")
+    return <p className="mt-1.5 text-[11px] text-muted-foreground">Deterministic stand-in that obeys injected instructions — best for seeing every defense fire.</p>;
+  if (planner === "ollama") {
+    const o = availability.ollama;
+    if (!o.reachable) return <p className="mt-1.5 text-[11px] text-review" role="status">Ollama is not reachable at {o.host}. Start it with <code>ollama serve</code>, then press Check.</p>;
+    if (!o.modelPresent) return <p className="mt-1.5 text-[11px] text-review" role="status">Run <code>ollama pull {o.model}</code> (installed: {o.models.join(", ") || "none"}).</p>;
+    return <p className="mt-1.5 text-[11px] text-muted-foreground">Local model {o.model} via Ollama {o.version}. Temperature 0, seed 42. Free, nothing leaves this machine.</p>;
+  }
+  return <p className="mt-1.5 text-[11px] text-muted-foreground">Uses your Anthropic API key (paid). Model {availability.anthropic.model}.</p>;
+}
 
 function StepCard({ step, onApproved }: { step: Step; onApproved: (stepIndex: number, output: string) => void }) {
   const [open, setOpen] = useState(step.decision.decision !== "ALLOW");
@@ -212,12 +231,23 @@ function StepCard({ step, onApproved }: { step: Step; onApproved: (stepIndex: nu
   );
 }
 
-export function Playground({ corpus, llmAvailable }: { corpus: CorpusRow[]; llmAvailable: boolean }) {
+export function Playground({ corpus, availability: initialAvailability }: { corpus: CorpusRow[]; availability: Availability }) {
+  const [availability, setAvailability] = useState(initialAvailability);
+  const [checking, setChecking] = useState(false);
+  async function refreshAvailability() {
+    setChecking(true);
+    try {
+      const r = await fetch("/api/llm/status");
+      if (r.ok) setAvailability(await r.json());
+    } finally {
+      setChecking(false);
+    }
+  }
   const [prompt, setPrompt] = useState(PRESETS[1].prompt);
   const [tools, setTools] = useState<string[]>(PRESETS[1].tools);
   const [scope, setScope] = useState<string[]>(PRESETS[1].scope);
   const [destinations, setDestinations] = useState("");
-  const [planner, setPlanner] = useState<"simulated" | "claude">("simulated");
+  const [planner, setPlanner] = useState<PlannerKind>("simulated");
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<RunResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -297,13 +327,22 @@ export function Playground({ corpus, llmAvailable }: { corpus: CorpusRow[]; llmA
             <select
               id="planner"
               value={planner}
-              onChange={(e) => setPlanner(e.target.value as "simulated" | "claude")}
+              onChange={(e) => setPlanner(e.target.value as PlannerKind)}
               className="h-8 min-w-0 flex-1 rounded-md border bg-background px-2 text-xs"
             >
               <option value="simulated">Simulated agent (deterministic, injection-prone)</option>
-              <option value="claude" disabled={!llmAvailable}>Claude tool-calling{llmAvailable ? "" : " — set ANTHROPIC_API_KEY"}</option>
+              <option value="ollama" disabled={!availability.ollama.available}>
+                Ollama (local) · {availability.ollama.model}{availability.ollama.available ? "" : availability.ollama.reachable ? " — model not pulled" : " — not running"}
+              </option>
+              <option value="anthropic" disabled={!availability.anthropic.available}>
+                Anthropic · {availability.anthropic.model}{availability.anthropic.available ? "" : " — no API key"}
+              </option>
             </select>
+            <button type="button" onClick={refreshAvailability} disabled={checking} className="h-8 rounded-md border px-2 text-xs text-muted-foreground hover:bg-muted" aria-label="Re-check model availability">
+              {checking ? <Loader2 className="size-3.5 animate-spin" /> : "Check"}
+            </button>
           </div>
+          <ProviderHint planner={planner} availability={availability} />
           <Button className="mt-3 w-full" onClick={run} disabled={running || tools.length === 0 || scope.length === 0}>
             {running ? <Loader2 className="animate-spin" /> : <Play />} Run agent
           </Button>
@@ -374,7 +413,7 @@ export function Playground({ corpus, llmAvailable }: { corpus: CorpusRow[]; llmA
       <div className="min-w-0 space-y-4">
         <Panel
           title="Execution trace"
-          description={result ? `${result.planner} · session ${result.sessionId.slice(0, 12)}…` : "Proposed tool calls and AgentGuard decisions, in order."}
+          description={result ? `${result.planner} · session ${result.sessionId.slice(0, 12)}… · ${(result.totalMs / 1000).toFixed(1)} s` : "Proposed tool calls and AgentGuard decisions, in order."}
           actions={
             result && (
               <Link href={`/sessions/${result.sessionId}`} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
@@ -390,7 +429,7 @@ export function Playground({ corpus, llmAvailable }: { corpus: CorpusRow[]; llmA
           )}
           {running && (
             <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground justify-center">
-              <Loader2 className="size-4 animate-spin" /> Agent is working; every proposal goes through the PEP…
+              <Loader2 className="size-4 animate-spin" /> {planner === "simulated" ? "Agent is working; every proposal goes through the PEP…" : "Real LLM is thinking — on a CPU-only machine each turn can take 30 s or more. Every proposal still goes through the PEP."}
             </div>
           )}
           {result && !running && (
@@ -429,6 +468,19 @@ export function Playground({ corpus, llmAvailable }: { corpus: CorpusRow[]; llmA
         {result && !running && (
           <Panel title="Agent final message">
             <p className="whitespace-pre-wrap text-sm">{result.finalMessage}</p>
+            {result.status === "failed" && <p className="mt-2 text-xs text-block" role="alert">The agent run failed before finishing (see message above). Nothing was executed without passing the PEP.</p>}
+            {result.llmTurns.length > 0 && (
+              <div className="mt-3 border-t pt-3">
+                <div className="mb-1 text-xs font-medium text-muted-foreground">LLM calls · {result.provider} · {result.model}</div>
+                <ul className="space-y-0.5 font-mono text-[11.5px] text-muted-foreground">
+                  {result.llmTurns.map((t) => (
+                    <li key={t.turn}>
+                      turn {t.turn}: {t.error ? <span className="text-block">{t.error}</span> : <>{(t.latencyMs / 1000).toFixed(1)} s · {t.inputTokens} in / {t.outputTokens} out tokens · {t.toolCalls} tool call(s) · {t.stopReason}</>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {result.status === "awaiting_approval" && (
               <p className="mt-2 text-xs text-muted-foreground">
                 The run stopped at the first action needing approval. Approve it above or in the <Link href="/approvals" className="underline underline-offset-4">Approval Inbox</Link>.

@@ -14,7 +14,7 @@
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
     "bench": "tsx scripts/bench.ts",
-    "bench:llm": "tsx scripts/bench.ts --llm",
+    "bench:llm": "tsx scripts/bench-llm.ts",
     "test:pg": "vitest run --config vitest.pg.config.ts"
   },
   "dependencies": {
