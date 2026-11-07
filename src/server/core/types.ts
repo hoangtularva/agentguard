@@ -75,3 +75,5 @@ export interface CorpusItem {
   sensitivity: Sensitivity;
   content: string;
 }
+
+export type Corpus = Map<string, CorpusItem>;
