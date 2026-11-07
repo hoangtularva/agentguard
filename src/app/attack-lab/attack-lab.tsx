@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, ChevronDown, Loader2, Play, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronDown, Download, Loader2, Play, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Fragment, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -55,6 +55,37 @@ const CATEGORY_LABEL: Record<string, string> = {
   approval_attack: "Approval attack",
 };
 
+function download(name: string, content: string, type: string) {
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function csvCell(v: unknown) {
+  const s = String(v ?? "");
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+/** One row per scenario run: what the agent proposed and what AgentGuard decided. */
+function toCsv(report: Report): string {
+  const rows = [["scenario", "category", "attack", "run", "pass", "baseline_attack_succeeded", "guarded_attack_succeeded", "rubber_stamp_attack_succeeded", "guarded_decisions", "detail"]];
+  for (const sc of report.scenarios) {
+    sc.runs.forEach((r, i) => {
+      if ("guarded" in r) {
+        const a = r as AgentRun;
+        rows.push([sc.id, sc.category, String(sc.attack), String(i + 1), String(sc.pass), String(a.baseline.attackSucceeded), String(a.guarded.attackSucceeded), String(a.rubberStamp.attackSucceeded), a.guarded.proposals.map((p) => `${p.tool}:${p.decision}`).join(" "), ""]);
+      } else {
+        const ap = r as ApprovalRun;
+        rows.push([sc.id, sc.category, "true", String(i + 1), String(sc.pass), "", String(!ap.prevented), "", "", ap.detail]);
+      }
+    });
+  }
+  return rows.map((r) => r.map(csvCell).join(",")).join("\n");
+}
+
 function Comparison({ label, a, b, lowerIsBetter = true }: { label: string; a: number; b: number; lowerIsBetter?: boolean }) {
   const max = Math.max(a, b, 0.0001);
   return (
@@ -79,18 +110,16 @@ function Comparison({ label, a, b, lowerIsBetter = true }: { label: string; a: n
 export function AttackLab({
   scenarios,
   initial,
-  llmAvailable,
   history,
 }: {
   scenarios: ScenarioMeta[];
   initial: Report | null;
-  llmAvailable: boolean;
   history: { id: string; createdAt: string; durationMs: number; metrics: Metrics; config: { planner: string; runs: number } }[];
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set(scenarios.map((s) => s.id)));
   const [runs, setRuns] = useState(1);
-  const [planner, setPlanner] = useState<"simulated" | "claude">("simulated");
+  const planner = "simulated" as const;
   const [running, setRunning] = useState(false);
   const [report, setReport] = useState<Report | null>(initial as Report | null);
   const [open, setOpen] = useState<string | null>(null);
@@ -132,12 +161,9 @@ export function AttackLab({
       <Panel>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <label className="flex items-center gap-1.5">Agent
-              <select value={planner} onChange={(e) => setPlanner(e.target.value as "simulated" | "claude")} className="h-8 rounded-md border bg-background px-2">
-                <option value="simulated">Simulated (deterministic)</option>
-                <option value="claude" disabled={!llmAvailable}>Claude{llmAvailable ? "" : " — needs API key"}</option>
-              </select>
-            </label>
+            <span className="rounded-md border px-2 py-1" title="Real-LLM runs take minutes per scenario on CPU; run them with npm run bench:llm">
+              Agent: simulated (deterministic)
+            </span>
             <label className="flex items-center gap-1.5">Runs
               <select value={runs} onChange={(e) => setRuns(Number(e.target.value))} className="h-8 rounded-md border bg-background px-2">
                 {[1, 2, 3, 5].map((n) => <option key={n}>{n}</option>)}
@@ -147,7 +173,17 @@ export function AttackLab({
             <button type="button" className="underline underline-offset-4" onClick={() => setSelected(new Set(scenarios.map((s) => s.id)))}>all</button>
             <button type="button" className="underline underline-offset-4" onClick={() => setSelected(new Set())}>none</button>
           </div>
-          <Button className="lg:ml-auto" onClick={() => run()} disabled={running || selected.size === 0}>
+          {report && (
+            <div className="flex gap-2 lg:ml-auto">
+              <Button size="sm" variant="outline" onClick={() => download(`agentguard-${report.id}.json`, JSON.stringify(report, null, 2), "application/json")}>
+                <Download /> JSON
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => download(`agentguard-${report.id}.csv`, toCsv(report), "text/csv")}>
+                <Download /> CSV
+              </Button>
+            </div>
+          )}
+          <Button className={report ? "" : "lg:ml-auto"} onClick={() => run()} disabled={running || selected.size === 0}>
             {running ? <Loader2 className="animate-spin" /> : <Play />} Run simulation
           </Button>
         </div>

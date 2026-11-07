@@ -1,9 +1,9 @@
 import { PageHeader } from "@/components/primitives";
-import { llmConfigured } from "@/server/agent/claude-planner";
 import type { BenchReport } from "@/server/bench/harness";
 import { ALL_SCENARIOS } from "@/server/bench/scenarios";
 import { benchmarkHistory, latestBenchmark } from "@/server/queries";
 import { AttackLab, type ScenarioMeta } from "./attack-lab";
+import { LlmResults } from "./llm-results";
 
 export const metadata = { title: "Attack Lab" };
 
@@ -39,9 +39,11 @@ export default async function AttackLabPage() {
       <AttackLab
         scenarios={scenarios}
         initial={initial}
-        llmAvailable={llmConfigured()}
         history={history.map((h) => ({ id: h.id, createdAt: h.createdAt.toISOString(), durationMs: h.durationMs, metrics: h.metrics as BenchReport["metrics"], config: h.config as BenchReport["config"] }))}
       />
+      <div className="mt-4">
+        <LlmResults />
+      </div>
     </>
   );
 }

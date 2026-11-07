@@ -17,7 +17,12 @@ export type ScenarioCategory =
   | "unauthorized_resource"
   | "unauthorized_destination"
   | "missing_policy"
-  | "approval_attack";
+  | "approval_attack"
+  | "injection_email"
+  | "approval_manipulation"
+  | "policy_escalation"
+  | "missing_provenance"
+  | "multi_step";
 
 export interface AgentScenario {
   kind: "agent";
