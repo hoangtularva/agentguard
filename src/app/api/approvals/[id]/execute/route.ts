@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { getAppPep, getCurrentUser } from "@/server/app-context";
 import { getDb } from "@/server/db/client";
@@ -28,11 +28,14 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (r.ok && !r.replayed) {
     const db = await getDb();
     const [apr] = await db.select().from(s.approvals).where(eq(s.approvals.id, id)).limit(1);
-    if (apr)
-      await db
-        .update(s.agentSessions)
-        .set({ status: "completed", finalMessage: `Approved action executed: ${r.output ?? "done"}` })
-        .where(eq(s.agentSessions.id, apr.sessionId));
+    if (apr) {
+      // The session is complete only when no other approval in it is still open.
+      const open = await db
+        .select({ id: s.approvals.id })
+        .from(s.approvals)
+        .where(and(eq(s.approvals.sessionId, apr.sessionId), inArray(s.approvals.status, ["pending", "approved"])));
+      if (open.length === 0) await db.update(s.agentSessions).set({ status: "completed" }).where(eq(s.agentSessions.id, apr.sessionId));
+    }
   }
   if (!r.ok) return json(r, r.code === "NOT_AUTHORIZED" ? 403 : 409);
   return json({ ok: true, replayed: r.replayed, toolCallId: r.toolCallId, summary: r.summary, output: r.output });

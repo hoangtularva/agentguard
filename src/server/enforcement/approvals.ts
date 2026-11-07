@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import type { DB } from "@/server/db/client";
 import * as s from "@/server/db/schema";
 import { writeAudit } from "./audit";
@@ -35,7 +35,12 @@ export async function decideApproval(
       .where(and(eq(s.approvals.id, apr.id), eq(s.approvals.status, "pending")));
     if (status === "rejected") {
       await tx.update(s.toolCalls).set({ status: "rejected", pendingArgs: null }).where(eq(s.toolCalls.id, apr.toolCallId));
-      await tx.update(s.agentSessions).set({ status: "completed", finalMessage: "Action rejected by reviewer." }).where(eq(s.agentSessions.id, apr.sessionId));
+      const open = await tx
+        .select({ id: s.approvals.id })
+        .from(s.approvals)
+        .where(and(eq(s.approvals.sessionId, apr.sessionId), inArray(s.approvals.status, ["pending", "approved"])));
+      if (open.every((o) => o.id === apr.id))
+        await tx.update(s.agentSessions).set({ status: "completed" }).where(eq(s.agentSessions.id, apr.sessionId));
     }
     await writeAudit(tx, {
       type: status === "approved" ? "approval.approved" : "approval.rejected",
