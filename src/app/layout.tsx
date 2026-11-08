@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { connection } from "next/server";
 import { AppShell } from "@/components/app-shell";
 import { Providers } from "@/components/providers";
 import { getCurrentUser } from "@/server/app-context";
@@ -15,6 +16,8 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Live security data: never prerender at build time (the build must not need a database).
+  await connection();
   const [user, users, stats] = await Promise.all([getCurrentUser(), listUsers(), overviewStats()]);
   return (
     <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
