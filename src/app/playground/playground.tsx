@@ -104,6 +104,10 @@ function StepCard({ step, onApproved }: { step: Step; onApproved: (stepIndex: nu
   const reasons = d.reasons.filter((r) => r.code !== "RULE_MATCHED" || r.effect !== "ALLOW" || d.decision === "ALLOW");
   const Icon = TOOLS.find((t) => t.name === step.tool)?.icon ?? Bot;
   const risk = d.riskScore;
+  // One-line "why" shown on the collapsed card: the most decisive reason.
+  const decisive =
+    d.reasons.find((r) => r.effect === "BLOCK") ?? d.reasons.find((r) => r.effect === "REVIEW") ?? d.reasons.find((r) => r.effect === "ALLOW");
+  const headline = decisive?.message;
 
   async function decide(kind: "approve" | "reject") {
     if (!step.approvalId) return;
@@ -145,6 +149,7 @@ function StepCard({ step, onApproved }: { step: Step; onApproved: (stepIndex: nu
         <button type="button" onClick={() => setOpen((o) => !o)} className="flex w-full flex-wrap items-center gap-2 px-3.5 py-2.5 text-left">
           <DecisionBadge decision={d.decision} />
           <span className="font-mono text-[13px] font-medium">{step.tool}</span>
+          {headline && <span className="min-w-0 truncate text-xs text-muted-foreground" title={headline}>— {headline}</span>}
           {step.injected && (
             <span className="inline-flex items-center gap-1 rounded bg-block/10 px-1.5 py-0.5 text-[11px] font-medium text-block">
               <AlertTriangle className="size-3" /> proposed after reading untrusted content

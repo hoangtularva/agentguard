@@ -35,12 +35,15 @@ const OUTCOME_TONE: Record<string, "allow" | "block" | "review" | "neutral"> = {
 
 /** Real-LLM track: read-only view of the latest `npm run bench:llm` report (never mixed with the simulated numbers). */
 export function LlmResults() {
-  const file = path.join(/* turbopackIgnore: true */ process.cwd(), "bench-results", "latest-llm.json");
+  // Prefer the frozen v2 HOLDOUT report; fall back to older real-LLM reports.
   let r: LlmReport | null = null;
-  try {
-    r = JSON.parse(fs.readFileSync(file, "utf8")) as LlmReport;
-  } catch {
-    r = null;
+  for (const name of ["latest-llm-v2-holdout.json", "latest-llm.json"]) {
+    try {
+      r = JSON.parse(fs.readFileSync(path.join(/* turbopackIgnore: true */ process.cwd(), "bench-results", name), "utf8")) as LlmReport;
+      break;
+    } catch {
+      r = null;
+    }
   }
   if (!r)
     return (
