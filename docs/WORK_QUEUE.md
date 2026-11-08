@@ -29,3 +29,21 @@ Status: DONE · PARTIAL · NOT VERIFIED · TODO. Evidence points at tests or com
 | W-23 | Next | LLM adversarial benchmark run | W-09 | Results with model, effort, runs, variance | TODO (needs key) | — |
 | W-24 | Next | Port AgentDojo / InjecAgent tasks | W-12 | External dataset numbers | TODO | — |
 | W-25 | Next | Executor isolation service with signed execution tokens | W-06 | Agent process cannot reach tool credentials | TODO | — |
+
+## Phase 2 (2026-11-08)
+
+| ID | Pri | Task | Acceptance criteria | Status | Evidence |
+|---|---|---|---|---|---|
+| W-30 | P0 | Environment audit + plan | Hardware, OS, WSL, Docker, Ollama, Postgres checked | DONE | docs/PHASE2_PLAN.md |
+| W-31 | P0 | Docker Desktop + Compose verified | `docker compose up` healthy + e2e against it | **BLOCKED** (admin) | BLOCKERS B-01 |
+| W-32 | P0 | Real PostgreSQL integration & concurrency | migrations, transactions, concurrent approvals, idempotency, replay, policy change, session consistency, connection failure, rollback | DONE | `npm run test:pg` 11/11 |
+| W-33 | P0 | Fix non-atomic claim/execute | Failure after claim leaves approval re-usable, no side effect | DONE | rollback test fails on the old code, passes on the new |
+| W-34 | P1 | LLM provider adapter (simulated/Ollama/Anthropic) | Common interface, timeout, errors, usage; providers cannot reach executors | DONE | `llm-provider.test.ts` 5/5 |
+| W-35 | P1 | Ollama installed + model | Local API answers; tool calling works | DONE | Ollama 0.40.15, qwen2.5:3b (digest 357c53fb…) |
+| W-36 | P1 | Playground provider picker + status + errors | Clear message when Ollama is down; simulated unaffected | DONE | manual + e2e |
+| W-37 | P1 | Held-out test set | Written after the policy freeze; new attack styles | DONE | `independent-scenarios.ts` (14) |
+| W-38 | P1 | Real-LLM benchmark (unguarded vs guarded) | Reproducible config recorded; per-scenario outcomes; failure causes | DONE (1 run) | `docs/benchmark-llm-latest.md` |
+| W-39 | P2 | Attack Lab export + real-LLM panel | JSON/CSV export; LLM results visible | DONE | manual |
+| W-40 | P2 | Security audit | npm audit, CSRF, DoS, session, findings fixed or documented | DONE | threat-model Phase 2 table |
+| W-41 | P3 | Docs: Windows/Docker/Ollama guides, interview guide | Present and accurate | DONE | docs/setup-windows.md, docs/interview-guide.md |
+| W-42 | Next | Multiple seeds / models; AgentDojo port | Statistical confidence | TODO | — |

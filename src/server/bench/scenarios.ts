@@ -7,6 +7,8 @@ export interface CallMatcher {
   tool: string;
   destination?: string;
   resource?: string;
+  /** Matches any destination EXCEPT this one (e.g. a hallucinated recipient). */
+  destinationNot?: string;
 }
 
 export type ScenarioCategory =

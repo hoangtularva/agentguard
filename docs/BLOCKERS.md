@@ -1,9 +1,12 @@
 # Blockers and unverified items
 
-| ID | Item | Status | Impact | Workaround used | To unblock |
-|---|---|---|---|---|---|
-| B-01 | Docker is not installed on the build machine | **NOT VERIFIED**: `docker compose up` was never run | Compose and Dockerfile are untested as a whole | (a) `next build` standalone output started and served `/` and `/attack-lab` with HTTP 200; (b) the node-postgres `DATABASE_URL` path (migrations, seed, enforcement, approval) passed over the PostgreSQL wire protocol using pglite-socket (`tests/integration/pg-wire.test.ts`) | On a machine with Docker: `cp .env.example .env`, set `AUTH_SECRET`, `docker compose up --build`, open http://localhost:3000, run the Attack Lab |
-| B-02 | No PostgreSQL server available | **PARTIALLY VERIFIED** | Multi-connection row-lock behaviour (`FOR UPDATE` across separate connections) was not exercised on a real server; pglite-socket serves one connection at a time | Concurrency tested on PGlite (5 parallel executes → 1 side effect) and by unique constraints | Run `npm test` with `DATABASE_URL` pointing at Postgres 16 (adapt `tests/helpers.ts` to use the URL), or run the e2e suite against the compose stack |
-| B-03 | No `ANTHROPIC_API_KEY` in the environment | **NOT VERIFIED**: the Claude planner and `npm run bench:llm` were never executed | No LLM-based adversarial numbers exist; none are claimed | The code typechecks against `@anthropic-ai/sdk` 1.6.0; the route returns 400 `llm_not_configured` without credentials | Set `ANTHROPIC_API_KEY`, run `npm run bench:llm -- --runs 3`, and add the results to benchmark.md with model, effort and date |
+Updated 2026-11-08 (Phase 2).
 
-No task was skipped for safety or permission reasons. Nothing was pushed, deployed, or sent externally.
+| ID | Item | Status | What was done | What the user must do |
+|---|---|---|---|---|
+| B-01 | Docker Compose stack | **BLOCKED — needs Administrator** | Audit: Windows 10 Pro 22H2 x64, hypervisor present, WSL installed (default v2) but **WSL 2 kernel missing**, no distro, Docker not installed. Both `wsl --update` and the Docker Desktop installer need elevation and may need a reboot, so neither was attempted (the rules say ask first). Verified instead: standalone production build serves HTTP 200; node-postgres path over the wire protocol; full suite on a **real PostgreSQL 16** server (B-02). `docker-compose.yml` is unchanged and still **NOT VERIFIED**. | Follow [setup-windows.md § C](setup-windows.md): admin `wsl --update` → install Docker Desktop (WSL 2 backend) → reboot if asked → `docker compose up --build -d` → `$env:E2E_BASE_URL="http://localhost:3000"; npm run test:e2e` |
+| B-02 | Multi-connection locking on real PostgreSQL | **RESOLVED** | `npm run test:pg`: 11 tests on a real PostgreSQL 16.x server (official binaries via `embedded-postgres`, no admin) with a 10-connection pool. Found and fixed a non-atomic claim/execute (see FINAL_REPORT) | — |
+| B-03 | Real LLM | **RESOLVED (local)** | Ollama 0.40.15 (portable zip, SHA-256 verified) + `qwen2.5:3b` on CPU. Real-LLM benchmark run on the held-out set. The Anthropic path is still **NOT VERIFIED** (no API key; not needed) | Optional: set `ANTHROPIC_API_KEY`, then `npm run bench:llm -- --provider anthropic` |
+| B-04 | WSL kernel auto-update disabled by Windows Update settings | Informational | Reported by `wsl --status` | Optional: enable "Receive updates for other Microsoft products" |
+
+Nothing was pushed, deployed or sent externally. No paid service was used.

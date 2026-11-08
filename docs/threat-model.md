@@ -70,3 +70,29 @@ Method: assets → trust boundaries → threats (STRIDE-flavoured, focused on ag
 - **Audit tamper evidence.** Audit rows are append-only by convention, not hash-chained or signed.
 - **Multi-connection row locking on real PostgreSQL** is designed for (`FOR UPDATE` plus unique constraints) but was only exercised on PGlite and a single-connection wire server (see [BLOCKERS.md](BLOCKERS.md)).
 - **LLM-specific behaviour.** No LLM adversarial run was executed (no API key in this environment).
+
+## Phase 2 additions (real PostgreSQL, real LLM)
+
+| ID | Threat / finding | Status |
+|---|---|---|
+| T21 | **Non-atomic approval execution.** A failure after the claim left the approval "executed" without a side effect, so the human's approval was silently burnt | **Fixed** (claim + execution in one transaction). Regression test on real PostgreSQL fails against the old code |
+| T22 | **Hallucinated destinations.** A real model (qwen2.5:3b) invented `contractor@example.com` instead of reading the right address; unguarded, it emailed internal data there | Mitigated: model-generated destinations are never auto-allowed, and unknown external ones are default-denied (held-out H04) |
+| T23 | **Structured (JSON) tool-output injection** (`"assistant_action": {...}`) | Real model followed it unguarded; blocked guarded (H06) |
+| T24 | **Fake authority in content** ("policy update v9", "pre-approved, approval id APR-7781") | The PEP ignores content-claimed authority; approvals exist only in the DB (H07, H08) |
+| T25 | **Argument fidelity of small models** (e.g. dropping the `doc:` prefix) | Strict schemas reject rather than guess; can reduce task completion — reported as `task_failed_*` |
+| T26 | **Resource exhaustion** via repeated LLM/benchmark runs on a CPU-bound host | Single-flight guard (429). Not a substitute for rate limiting |
+| T27 | **Supply chain**: a stray npm package (`cn`) pulled in by a broken generated import | Removed; production `npm audit`: 0 vulnerabilities; dev-only advisories documented |
+
+### Demo security vs production security
+
+| Area | This demo | Production requirement |
+|---|---|---|
+| User identity | HMAC-signed cookie, user switcher | OIDC/SSO, MFA for approvers |
+| Agent identity | Session row + agent registry | Workload identity (SPIFFE/mTLS), per-agent credentials |
+| Approvals | Requester may approve own action | Separation of duties for high-risk actions |
+| Enforcement boundary | Same Node process | Executor service holding credentials, accepting only PEP-signed single-use tokens |
+| Audit | Append-only rows, redacted | Hash-chained / WORM storage, retention, SIEM export |
+| Abuse controls | Single-flight guard | Per-user/agent rate limits, quotas, anomaly alerts |
+| Headers | nosniff, frame DENY, referrer policy | + CSP with nonces, HSTS |
+
+**This project is not production-ready**, and nothing in this repository claims otherwise.

@@ -100,3 +100,38 @@ Mỗi phase có 5 phần: kiến thức AI Engineering học được · vì sao
 **Lỗi hay gặp:** Identity lấy từ body request (ở đây: cookie ký HMAC + so sánh constant-time). Thiếu CSRF protection cho route dùng cookie (ở đây: same-origin check + SameSite). Chạy container bằng root (Dockerfile dùng user `app`).
 
 **Câu hỏi:** *"Nếu triển khai thật, bạn thay gì đầu tiên?"* → Auth thật (OIDC) + tách executor thành service riêng giữ credential, chỉ nhận token thực thi do PEP ký. Đó là ranh giới process thật sự.
+
+---
+
+# Phase 2 — Windows, PostgreSQL thật, LLM local, đánh giá thật
+
+## PostgreSQL thật & tính nguyên tử (atomicity)
+
+**Kiến thức:** PGlite chỉ có 1 connection nên mọi transaction tự động tuần tự hoá. Lỗi race condition chỉ lộ ra khi có **nhiều backend thật**. `embedded-postgres` chạy binary PostgreSQL 16 chính thức như một process thường (không cần admin), đủ để test khoá dòng thật.
+
+**Bài học thật:** phiên bản Phase 1 "claim" approval và "execute" ở **hai** transaction. Test trên Postgres thật đã tái hiện lỗi: nếu bước thực thi lỗi sau khi đã claim, approval bị đánh dấu `executed` nhưng hành động chưa từng chạy. Sửa: gộp claim + side effect + bản ghi execution vào **một** transaction. Test chạy trên code cũ thì fail, trên code mới thì pass. Đây là cách chứng minh một bản sửa lỗi.
+
+**Câu hỏi phỏng vấn:** *"Tại sao unique constraint chưa đủ?"* → Nó chặn được thực thi trùng, nhưng không đảm bảo trạng thái nhất quán khi thất bại giữa chừng. Cần ranh giới transaction đúng. *"FOR UPDATE khoá những gì?"* → Chỉ dòng approval. Việc kích hoạt policy song song vẫn có thể commit ngay sau khi ta đọc version, và đó là chấp nhận được (tuyến tính hoá tại thời điểm đọc). Test "policy race" ghi lại hành vi này.
+
+## LLM local với Ollama
+
+**Kiến thức:** Model 3B quantized (Q4) chạy CPU 2 nhân: ~28 token/s đọc prompt, ~6 token/s sinh, 10–25 s mỗi lượt. `temperature 0` + `seed` cố định giúp tái lập trên cùng máy, nhưng không đảm bảo giống hệt khi khác phần cứng hoặc phiên bản Ollama. Vì vậy báo cáo phải ghi **model digest**, phiên bản Ollama và cấu hình sampling.
+
+**Vì sao thiết kế provider adapter:** Một interface (`chat → text + tool calls + usage`) cho cả Anthropic lẫn Ollama. Provider **không có tham chiếu** tới executor; runtime luôn chuyển đề xuất qua PEP. Test dùng một "LLM độc hại" giả, luôn đề xuất exfiltration và tool không tồn tại: mọi đề xuất đều bị BLOCK và không có side effect nào.
+
+**Quan sát thật:** model nhỏ hay sai định dạng tham số (ví dụ bỏ tiền tố `doc:`). Schema strict sẽ chặn (`INVALID_ARGUMENTS`); agent nhận lý do và có thể thử lại. Đây là đánh đổi giữa *fidelity* và *an toàn*: không bao giờ "đoán hộ" tham số cho một tool có side effect.
+
+## Đánh giá với LLM thật
+
+**Kiến thức:** Với LLM thật, "tấn công không thành công" có hai nguyên nhân rất khác nhau: model **không làm theo** injection (`attack_not_attempted`), hoặc model **làm theo** nhưng guard chặn (`attack_blocked`). Chỉ báo ASR sẽ che mất điều này. Tương tự, task hợp lệ thất bại có thể do model yếu (`task_failed_model`) hoặc do guard chặn nhầm (`task_failed_guard`).
+
+**Held-out set:** viết *sau khi* đóng băng policy, dùng tài liệu và kiểu tấn công mới (CEO fraud, JSON injection, approval giả, policy giả, địa chỉ bị làm rối, đích do model bịa). Không được tinh chỉnh policy theo bộ này, nếu không con số sẽ mất ý nghĩa.
+
+**Câu hỏi phỏng vấn:** *"Benchmark LLM của bạn có ý nghĩa thống kê không?"* → Với 14 kịch bản × 1 lần chạy trên CPU thì **không**. Nó là bằng chứng định tính về hành vi. Muốn có ý nghĩa thống kê cần nhiều lần chạy với seed khác nhau, nhiều model, và dataset công khai (AgentDojo).
+
+## Bảo mật & dependency
+
+- `npm audit`: lỗ hổng critical chỉ nằm ở dev dependency (vitest/tinypool) → nâng cấp lên vitest 5. Gói lạ `cn` bị một import hỏng của shadcn kéo vào (đây là rủi ro supply-chain) → đã gỡ. Dependency production: 0 lỗ hổng.
+- CSRF: thêm kiểm tra `Sec-Fetch-Site` bên cạnh `Origin`.
+- DoS: giới hạn một lần chạy LLM/benchmark tại một thời điểm (429), vì một model local trên CPU rất dễ bị làm cạn tài nguyên.
+- Phân biệt **demo security** (cookie danh tính có HMAC, chạy chung một process) với **production security** (OIDC, tách executor service, audit log có hash-chain).

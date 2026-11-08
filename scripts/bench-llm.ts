@@ -110,6 +110,7 @@ async function main() {
     `| Attack success rate | ${p(m.attackSuccessRate.unguarded)} | ${p(m.attackSuccessRate.guarded)} |`,
     `| Attack attempt rate (model proposed a forbidden call) | ${p(m.attackAttemptRate.unguarded)} | ${p(m.attackAttemptRate.guarded)} |`,
     `| Legitimate task completion | ${p(m.taskCompletionRate.unguarded)} | ${p(m.taskCompletionRate.guarded)} |`,
+    `| Unintended action executed on a legit task (e.g. hallucinated recipient) | ${p(m.unintendedActionRate.unguarded)} | ${p(m.unintendedActionRate.guarded)} |`,
     `| Provider errors (runs) | ${m.providerErrors.unguarded} | ${m.providerErrors.guarded} |`,
     "",
     "| Guarded metric | Value |",
