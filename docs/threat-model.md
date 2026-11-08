@@ -96,3 +96,18 @@ Method: assets → trust boundaries → threats (STRIDE-flavoured, focused on ag
 | Headers | nosniff, frame DENY, referrer policy | + CSP with nonces, HSTS |
 
 **This project is not production-ready**, and nothing in this repository claims otherwise.
+
+## Phase 3 additions (red team, 2026-11-08)
+
+Full details, reproductions and test names: [PHASE3_FINDINGS.md](PHASE3_FINDINGS.md).
+
+| ID | Threat | Status |
+|---|---|---|
+| T28 | Implicit default identity: unauthenticated requests acted as a member | **Fixed (F1)**: no identity without a signed cookie; 401 / sign-in screen |
+| T29 | Demo identity switch = authentication bypass to approver/admin | **Mitigated (F3)**: gated by `AGENTGUARD_DEMO_AUTH` (off in production by default); still *by design* not authentication |
+| T30 | IDOR on read models (approvals with exact args, sessions, events) | **Fixed (F4)**: viewer-scoped queries; foreign sessions 404 |
+| T31 | Request-body exhaustion | **Fixed (F5)**: 64 KB streamed cap → 413 |
+| T32 | Script injection / clickjacking defense in depth | **Partly fixed (F6)**: CSP (`frame-ancestors 'none'`, `object-src 'none'`); `'unsafe-inline'` scripts remain |
+| T33 | Members triggering CPU-heavy benchmarks | **Fixed (F7)**: approver/admin only + single-flight |
+| T34 | Model-invented destinations (hallucination, not attack) | Observed with qwen2.5:3b in both DEV runs; unguarded 3 executed, guarded 0 (default deny on model-generated provenance) |
+| T35 | Argument corruption by small models (dropped prefixes, extra keys, garbled tokens) | Strict schemas reject; error messages now state the expected format so the model can self-correct (DEV FP 37.5% → 9.7%) |

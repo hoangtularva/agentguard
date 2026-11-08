@@ -135,3 +135,26 @@ Mỗi phase có 5 phần: kiến thức AI Engineering học được · vì sao
 - CSRF: thêm kiểm tra `Sec-Fetch-Site` bên cạnh `Origin`.
 - DoS: giới hạn một lần chạy LLM/benchmark tại một thời điểm (429), vì một model local trên CPU rất dễ bị làm cạn tài nguyên.
 - Phân biệt **demo security** (cookie danh tính có HMAC, chạy chung một process) với **production security** (OIDC, tách executor service, audit log có hash-chain).
+
+---
+
+# Phase 3 — Đánh giá LLM thật nghiêm túc & red team
+
+## Dev / holdout và tại sao phải đóng băng code
+**Kiến thức:** Bất kỳ con số nào bạn nhìn thấy rồi sửa code theo nó đều không còn là phép đo độc lập. Quy trình: chạy **DEV** → tìm *lỗi* (không chỉnh rule cho đẹp số) → sửa → chạy lại DEV → **đóng băng commit** → chạy **HOLDOUT** một lần, với nhiều seed. Commit đóng băng được ghi trong log benchmark.
+
+**Bài học thật trên DEV:** lần chạy đầu cho FP 37,5%. Đào sâu thì *không phải* policy chặn sai, mà là:
+1. Model nhỏ làm hỏng tham số (bỏ `doc:`, thêm khoá lạ, ký tự rác). PEP từ chối đúng, nhưng thông báo lỗi quá mơ hồ để model tự sửa → sửa thông báo lỗi (không nới schema). Kết quả: FP 9,7%, hoàn thành task 75% → 100%.
+2. Oracle đếm các lệnh gửi tới **địa chỉ do model bịa** là "hợp lệ" → định nghĩa lại: FP chỉ đo trên lệnh *người dùng thực sự yêu cầu*. Lệnh tới đích bịa được đếm riêng (khi không guard: thực thi; khi có guard: bị chặn).
+
+**Câu hỏi phỏng vấn:** *"Làm sao biết bạn không overfit benchmark?"* → DEV/HOLDOUT tách biệt, holdout viết song song nhưng chỉ chạy trên commit đóng băng, nhiều seed, báo CI; mọi thay đổi sau DEV đều ghi lại kèm lý do (lỗi sản phẩm hoặc lỗi đo lường, không phải chỉnh rule).
+
+## Khoảng tin cậy
+**Kiến thức:** Wilson interval tốt hơn "±1.96·√(p(1−p)/n)" khi p gần 0 hoặc n nhỏ (khoảng normal sẽ cho [0,0] khi p=0 — vô nghĩa). Ví dụ 0/20 tấn công thành công → CI 0–16%: nghĩa là *chưa loại trừ được* tỷ lệ thật tới 16%. Các lần lặp cùng kịch bản không độc lập nên CI thực tế còn rộng hơn — phải nói rõ.
+
+## Red team: tìm lỗi ở chỗ "không phải tính năng bảo mật chính"
+**Bài học:** PEP/approval đã được test kỹ, nhưng lỗ hổng thật lại nằm ở **lớp ứng dụng xung quanh**: danh tính mặc định (F1), nút đổi danh tính (F3), trang đọc dữ liệu không giới hạn theo người dùng (F4 — IDOR). Đây là mẫu thường gặp: hệ thống "bảo mật" bị hở ở dashboard/admin UI.
+
+**Cách làm đúng:** (1) tái hiện bằng request thật (curl vào stack Docker production), (2) ghi severity + root cause, (3) sửa, (4) viết test hồi quy chạy *trước* (fail) và *sau* (pass), (5) ghi rõ cái gì *không* sửa (OIDC, CSP nonce, rate limit).
+
+**Câu hỏi phỏng vấn:** *"IDOR là gì, bạn chặn thế nào?"* → Truy cập object qua id mà không kiểm tra quyền sở hữu. Chặn ở **tầng truy vấn** (mọi read model nhận `Viewer`), trả 404 cho cả "không tồn tại" lẫn "không thuộc về bạn" để không lộ sự tồn tại.
