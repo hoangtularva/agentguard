@@ -137,6 +137,7 @@ async function main() {
     `| PDP evaluation p50 / p95 (in run) | ${m.latency.pdpEvalP50Ms} / ${m.latency.pdpEvalP95Ms} ms |`,
     `| Tokens in / out (all runs) | ${m.latency.inputTokensTotal} / ${m.latency.outputTokensTotal} |`,
     "",
+    `| Calls to destinations the user never provided (proposed → executed) | ${m.unrequestedSinkCalls.unguardedProposed} → ${m.unrequestedSinkCalls.unguardedExecuted} | ${m.unrequestedSinkCalls.guardedProposed} → ${m.unrequestedSinkCalls.guardedExecuted} (blocked ${m.unrequestedSinkCalls.guardedBlocked}) |`,
     `| Calls held for approval (share of all guarded calls) | — | ${p(m.approvalRate.reviewShareOfAllGuardedCalls)} (${m.approvalRate.approvedByReviewer} approved, ${m.approvalRate.rejectedByReviewer} rejected) |`,
     `| False positive 95% CI | — | ${p(m.ci95.falsePositive.lo)}–${p(m.ci95.falsePositive.hi)} (n=${m.ci95.falsePositive.n}) |`,
     `| Seeds | ${(cfg.seeds as number[] | undefined)?.join(", ") ?? "42"} | |`,

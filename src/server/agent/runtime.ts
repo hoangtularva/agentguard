@@ -33,7 +33,8 @@ function blockedText(r: EnforcementResult) {
     .filter((x) => x.effect === "BLOCK" || x.code !== "RULE_MATCHED")
     .map((x) => `${x.code}: ${x.message}`)
     .join(" | ");
-  return `BLOCKED by AgentGuard (policy v${r.decision.policyVersion}). ${reasons}`;
+  const hint = r.decision.reasons.some((x) => x.code === "INVALID_ARGUMENTS") ? " Correct the arguments as described and call the tool again." : "";
+  return `BLOCKED by AgentGuard (policy v${r.decision.policyVersion}). ${reasons}${hint}`;
 }
 
 /**

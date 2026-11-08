@@ -219,7 +219,11 @@ export class EnforcementPoint {
           ...base,
           tool: { name: tool.name, risk: tool.risk, kind: tool.kind, known: true },
           argsValid: false,
-          argsErrors: parsed.error.issues.map((i) => `${i.path.join(".") || "args"}: ${i.message}`),
+          argsErrors: parsed.error.issues.map((i) =>
+            i.code === "unrecognized_keys"
+              ? `unknown argument(s) ${(i as { keys?: string[] }).keys?.join(", ")}; ${tool.name} accepts only: ${Object.keys((tool.jsonSchema as { properties?: object }).properties ?? {}).join(", ")}`
+              : `${i.path.join(".") || "args"}: ${i.message}`,
+          ),
           resources: [],
           dataSensitivity: state.readSensitivity,
         },
