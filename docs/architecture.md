@@ -70,6 +70,8 @@ Then the executor runs in a transaction that inserts `executions` with unique `t
 
 `users`, `agents`, `corpus_items`, `policy_versions` (immutable, unique `(policy_id, version)`), `active_policy`, `agent_sessions` (prompt + mandate), `provenance_sources` (hash only), `tool_calls`, `approvals` (unique per tool call), `executions` (unique tool call, unique idempotency key), `sandbox_effects` (mock side effects), `audit_events`, `benchmark_runs`. Migration: `drizzle/0000_init.sql`.
 
+**Identity & data scoping (Phase 3):** `src/server/identity.ts` signs the demo identity cookie (HMAC-SHA256, constant-time compare). There is no implicit user: APIs return 401 and pages show a demo sign-in. Demo sign-in requires `AGENTGUARD_DEMO_AUTH` (default on outside production). All read models in `src/server/queries.ts` take a `Viewer`: members see only their own sessions, approvals and events; approvers and admins see all.
+
 **LLM modes:** `simulated` (default, deterministic), `ollama` (`OLLAMA_HOST`, `AGENTGUARD_OLLAMA_MODEL`), `anthropic` (`ANTHROPIC_API_KEY`). `GET /api/llm/status` probes availability (2 s timeout). LLM runs and benchmarks are single-flight (429 when busy).
 
 **Database modes:** `DATABASE_URL` → node-postgres (Docker Compose). Otherwise → **PGlite** (PostgreSQL compiled to WASM), persisted in `.data/pglite` or in-memory for tests. Same migrations, same SQL semantics. See [DECISIONS.md](DECISIONS.md) D-02.
