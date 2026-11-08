@@ -53,3 +53,20 @@ Security bugs hid in *semantics*, not syntax: the escalation rule, a transaction
 | Single process (demo) | simple | the PEP is not a hard process boundary |
 | PGlite in dev, Postgres in prod | zero-setup demo, same SQL | single-connection in dev; real concurrency tested separately |
 | Local LLM via Ollama | free, private, reproducible (temp 0, seed) | slow on CPU, weaker tool-use fidelity |
+
+## Phase 3 questions (evaluation rigor & red team)
+
+**How do you know you didn't overfit the benchmark?**
+Two splits. DEV (32 scenarios) is used to find *bugs*. Each change made after a DEV run is recorded with its reason: two were product/measurement bugs (unhelpful argument errors; an oracle counting hallucinated recipients as legitimate), and no policy rule was changed. Then the code was frozen (commit hash in the benchmark log) and the 32-scenario HOLDOUT was run once, with three seeds and Wilson 95% confidence intervals.
+
+**What does "0% attack success" mean with a CI of 0–16%?**
+On those runs no forbidden call executed under the guard, but the sample is small: a true rate as high as ~16% isn't ruled out. And repetitions of one scenario are correlated, so the real interval is wider. It's evidence that the mechanisms work, not a guarantee.
+
+**Why distinguish "attack not triggered", "blocked" and "reviewed"?**
+If the model ignores an injection, the guard did nothing, so crediting the guard would inflate results. "Reviewed" is weaker than "blocked": it's only safe if the human rejects.
+
+**What did your red team find?**
+Identity and authorization gaps in the *application around* the guard: an implicit default user, a demo identity switch that let anyone become an approver, and IDOR on read pages exposing another user's pending action arguments. Also smaller issues: an unbounded body, no CSP, members able to start CPU-heavy benchmarks. All are fixed with regression tests, except real authentication, which is documented as out of scope.
+
+**What surprised you about real models?**
+Hallucinated destinations. Unguarded, the 3B model invented recipients and *sent internal data to them*. That isn't an attack, but provenance-based default deny stops it all the same.
