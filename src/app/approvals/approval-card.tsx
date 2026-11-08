@@ -2,7 +2,7 @@
 
 import { Clock3, Loader2, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { JsonBlock, Pill } from "@/components/primitives";
 import { Button } from "@/components/ui/button";
@@ -64,7 +64,11 @@ export function ApprovalCard({ v }: { v: ApprovalView }) {
     if (!r.ok) throw new Error(j.code ? `${j.code}: ${j.message}` : j.error);
     return j;
   }
+  // Synchronous guard against double-submit (state updates are async; a ref is not).
+  const inFlight = useRef(false);
   async function act(kind: "approve" | "reject" | "execute") {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusy(kind);
     try {
       if (kind !== "execute" && v.status === "pending") await call("decide", { decision: kind });
@@ -77,9 +81,13 @@ export function ApprovalCard({ v }: { v: ApprovalView }) {
       toast.error((e as Error).message);
       router.refresh();
     } finally {
+      inFlight.current = false;
       setBusy(null);
     }
   }
+
+  const dest = v.provenance.destination?.value ?? (typeof v.args.to === "string" ? v.args.to : typeof v.args.destination === "string" ? v.args.destination : undefined);
+  const resources = [v.args.documentIds, v.args.dataset].flat().filter((x): x is string => typeof x === "string");
 
   const reasons = v.reasons.filter((r) => r.effect === "REVIEW" || r.effect === "BLOCK" || r.code !== "RULE_MATCHED");
   return (
@@ -90,9 +98,15 @@ export function ApprovalCard({ v }: { v: ApprovalView }) {
         <Pill>risk {v.riskScore}</Pill>
         <Pill>policy v{v.policyVersion}</Pill>
         <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground">
-          <Clock3 className="size-3.5" /> {open ? <Countdown to={v.expiresAt} /> : new Date(v.createdAt).toLocaleString()}
+          <Clock3 className="size-3.5" /> {open ? <Countdown to={v.expiresAt} /> : `${v.createdAt.slice(0, 16).replace("T", " ")} UTC`}
         </span>
       </div>
+      <p className="mt-2 text-sm">
+        <span className="font-medium">{v.tool === "send_email" ? "Send an email" : v.tool === "export_data" ? "Export a dataset" : "Read documents"}</span>
+        {dest && <> to <span className="font-mono">{dest}</span></>}
+        {resources.length > 0 && <> · resource <span className="font-mono">{resources.join(", ")}</span></>}
+        {" · "}data <span className="font-medium">{v.provenance.dataSensitivity}</span>
+      </p>
       <p className="mt-2 text-xs text-muted-foreground">
         User request: <span className="text-foreground">“{v.prompt}”</span>
       </p>

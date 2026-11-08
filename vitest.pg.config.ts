@@ -3,7 +3,7 @@ import { defineConfig } from "vitest/config";
 
 /** Real PostgreSQL 16 suite (official binaries via embedded-postgres). Run: npm run test:pg */
 export default defineConfig({
-  resolve: { alias: { "@": path.resolve(__dirname, "src") } },
+  resolve: { alias: { "@": path.resolve(__dirname, "src"), "server-only": path.resolve(__dirname, "tests/server-only-stub.ts") } },
   test: {
     include: ["tests/postgres/**/*.test.ts"],
     environment: "node",

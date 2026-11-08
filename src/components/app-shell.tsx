@@ -8,6 +8,7 @@ import {
   FlaskConical,
   Inbox,
   LayoutDashboard,
+  LogOut,
   Menu,
   Moon,
   ScrollText,
@@ -127,6 +128,24 @@ function ThemeToggle() {
   );
 }
 
+function SignOut() {
+  const router = useRouter();
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        await fetch("/api/identity", { method: "DELETE" });
+        router.refresh();
+      }}
+      className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+      aria-label="Sign out"
+      title="Sign out"
+    >
+      <LogOut className="size-4" />
+    </button>
+  );
+}
+
 function UserSwitcher({ user, users }: { user: User; users: User[] }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -204,6 +223,7 @@ export function AppShell({ children, user, users, pending, demoAuth }: { childre
               <span className="rounded-md border px-2 py-1 text-xs">{user.name} · {user.role}</span>
             )}
             <ThemeToggle />
+            <SignOut />
           </div>
         </header>
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 md:px-6 md:py-8">{children}</main>
