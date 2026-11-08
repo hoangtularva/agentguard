@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DecisionBadge, JsonBlock, PageHeader, Panel, Pill, timeAgo } from "@/components/primitives";
+import { getCurrentUser } from "@/server/app-context";
 import { sessionDetail } from "@/server/queries";
 
 export const metadata = { title: "Session audit record" };
@@ -8,7 +9,9 @@ export const metadata = { title: "Session audit record" };
 export default async function SessionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!/^ses_[a-z0-9]+$/i.test(id)) notFound();
-  const data = await sessionDetail(id);
+  const user = await getCurrentUser();
+  if (!user) return null;
+  const data = await sessionDetail(user, id);
   if (!data) notFound();
   const { session, calls, sources, effects } = data;
   const mandate = session.mandate as { allowedTools: string[]; resourceScope: string[]; destinations: string[] };

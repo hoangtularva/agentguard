@@ -1,3 +1,4 @@
+import { getCurrentUser } from "@/server/app-context";
 import { PageHeader } from "@/components/primitives";
 import { plannerAvailability } from "@/server/agent/planners";
 import { listCorpus } from "@/server/queries";
@@ -6,6 +7,7 @@ import { Playground } from "./playground";
 export const metadata = { title: "Agent Playground" };
 
 export default async function PlaygroundPage() {
+  if (!(await getCurrentUser())) return null;
   const [corpus, availability] = await Promise.all([listCorpus(), plannerAvailability()]);
   return (
     <>

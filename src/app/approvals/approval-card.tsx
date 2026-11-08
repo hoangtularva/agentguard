@@ -37,11 +37,18 @@ const STATUS_TONE: Record<string, "review" | "allow" | "block" | "neutral" | "br
 };
 
 function Countdown({ to }: { to: string }) {
-  const [now, setNow] = useState(() => Date.now());
+  // null on the server and the first client render, so SSR and hydration produce the same text.
+  const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
+    const tick = () => setNow(Date.now());
+    const first = setTimeout(tick, 0);
+    const t = setInterval(tick, 1000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(t);
+    };
   }, []);
+  if (now === null) return <span className="tabular">expires {new Date(to).toISOString().slice(11, 16)} UTC</span>;
   const s = Math.max(0, Math.round((new Date(to).getTime() - now) / 1000));
   return <span className="tabular">{s === 0 ? "expired" : `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s left`}</span>;
 }

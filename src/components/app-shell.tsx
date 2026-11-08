@@ -155,7 +155,7 @@ function UserSwitcher({ user, users }: { user: User; users: User[] }) {
   );
 }
 
-export function AppShell({ children, user, users, pending }: { children: React.ReactNode; user: User; users: User[]; pending: number }) {
+export function AppShell({ children, user, users, pending, demoAuth }: { children: React.ReactNode; user: User; users: User[]; pending: number; demoAuth: boolean }) {
   const collapsed = useSyncExternalStore(subscribeSidebar, readSidebar, () => false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const toggle = () => writeSidebar(!collapsed);
@@ -198,7 +198,11 @@ export function AppShell({ children, user, users, pending }: { children: React.R
           </Sheet>
           <span className="text-sm font-semibold md:hidden">AgentGuard</span>
           <div className="ml-auto flex items-center gap-2">
-            <UserSwitcher user={user} users={users} />
+            {demoAuth ? (
+              <UserSwitcher user={user} users={users} />
+            ) : (
+              <span className="rounded-md border px-2 py-1 text-xs">{user.name} · {user.role}</span>
+            )}
             <ThemeToggle />
           </div>
         </header>

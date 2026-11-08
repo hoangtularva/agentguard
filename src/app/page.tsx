@@ -4,6 +4,7 @@ import { DecisionChart } from "@/components/decision-chart";
 import { DecisionBadge, EmptyState, PageHeader, Panel, Pill, Stat, pct, timeAgo } from "@/components/primitives";
 import { buttonVariants } from "@/components/ui/button";
 import type { BenchMetrics } from "@/server/bench/harness";
+import { getCurrentUser } from "@/server/app-context";
 import { latestBenchmark, overviewStats, recentToolCalls } from "@/server/queries";
 
 export const metadata = { title: "Overview" };
@@ -20,7 +21,9 @@ const REASON_LABEL: Record<string, string> = {
 };
 
 export default async function OverviewPage() {
-  const [stats, recent, bench] = await Promise.all([overviewStats(), recentToolCalls(10), latestBenchmark()]);
+  const user = await getCurrentUser();
+  if (!user) return null;
+  const [stats, recent, bench] = await Promise.all([overviewStats(user), recentToolCalls(user, 10), latestBenchmark()]);
   const m = bench?.metrics as BenchMetrics | undefined;
   return (
     <>

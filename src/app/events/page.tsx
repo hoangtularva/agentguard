@@ -2,6 +2,7 @@ import { Activity } from "lucide-react";
 import Link from "next/link";
 import { DecisionBadge, EmptyState, JsonBlock, PageHeader, Panel, Pill, timeAgo } from "@/components/primitives";
 import { cn } from "@/lib/utils";
+import { getCurrentUser } from "@/server/app-context";
 import { listEvents, toolCallsByIds } from "@/server/queries";
 
 export const metadata = { title: "Security Events" };
@@ -29,8 +30,10 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
     session: sp.session && /^ses_[a-z0-9]+$/i.test(sp.session) ? sp.session : undefined,
     open: sp.open && /^evt_[a-z0-9-]+$/i.test(sp.open) ? sp.open : undefined,
   };
-  const events = await listEvents(clean);
-  const calls = await toolCallsByIds([...new Set(events.map((e) => e.toolCallId).filter((x): x is string => !!x))]);
+  const user = await getCurrentUser();
+  if (!user) return null;
+  const events = await listEvents(user, clean);
+  const calls = await toolCallsByIds(user, [...new Set(events.map((e) => e.toolCallId).filter((x): x is string => !!x))]);
   const callMap = new Map(calls.map((c) => [c.id, c]));
 
   return (

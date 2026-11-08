@@ -1,3 +1,4 @@
+import { requireUser } from "@/server/app-context";
 import { z } from "zod";
 import { evaluatePolicy } from "@/server/core/policy-engine";
 import { PolicyDocumentSchema } from "@/server/core/policy-schema";
@@ -26,6 +27,8 @@ const Body = z.object({
 });
 
 export async function POST(req: Request) {
+  const auth = await requireUser();
+  if (!auth.ok) return auth.res;
   const body = await parseBody(req, Body);
   if (!body.ok) return body.res;
   const { document, input: i } = body.data;

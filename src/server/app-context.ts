@@ -1,52 +1,32 @@
 import "server-only";
-import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
+import type { NextResponse } from "next/server";
 import type { Corpus } from "@/server/core/types";
 import { getDb } from "@/server/db/client";
 import * as s from "@/server/db/schema";
 import { dbPolicyResolver } from "@/server/enforcement/policy-store";
 import { EnforcementPoint } from "@/server/enforcement/pep";
+import { json } from "@/server/http";
+import { IDENTITY_COOKIE, decodeIdentity, encodeIdentity } from "@/server/identity";
 
-/**
- * DEMO IDENTITY — not authentication.
- * The current user is read from an HMAC-signed cookie so the server (never the
- * client body) decides who is acting. A real deployment replaces this with SSO/OIDC.
- */
-const COOKIE = "ag_uid";
-const g = globalThis as unknown as { __agSecret?: string };
-function secret(): string {
-  if (process.env.AUTH_SECRET && process.env.AUTH_SECRET.length >= 16) return process.env.AUTH_SECRET;
-  g.__agSecret ??= randomBytes(32).toString("hex"); // dev fallback: sessions reset on restart
-  return g.__agSecret;
-}
-function sign(v: string) {
-  return createHmac("sha256", secret()).update(v).digest("hex").slice(0, 32);
-}
-export function encodeIdentity(userId: string) {
-  return `${userId}.${sign(userId)}`;
-}
-function decodeIdentity(raw: string | undefined): string | null {
-  if (!raw) return null;
-  const i = raw.lastIndexOf(".");
-  if (i <= 0) return null;
-  const id = raw.slice(0, i);
-  const mac = Buffer.from(raw.slice(i + 1));
-  const want = Buffer.from(sign(id));
-  return mac.length === want.length && timingSafeEqual(mac, want) ? id : null;
-}
+export { IDENTITY_COOKIE, encodeIdentity };
 
-export const IDENTITY_COOKIE = COOKIE;
-export const DEFAULT_USER_ID = "u_alice";
+export type CurrentUser = typeof s.users.$inferSelect;
 
-export async function getCurrentUser() {
+/** The signed-in demo user, or null. There is deliberately no default identity. */
+export async function getCurrentUser(): Promise<CurrentUser | null> {
+  const id = decodeIdentity((await cookies()).get(IDENTITY_COOKIE)?.value);
+  if (!id) return null;
   const db = await getDb();
-  const jar = await cookies();
-  const id = decodeIdentity(jar.get(COOKIE)?.value) ?? DEFAULT_USER_ID;
   const [user] = await db.select().from(s.users).where(eq(s.users.id, id)).limit(1);
-  if (user) return user;
-  const [fallback] = await db.select().from(s.users).where(eq(s.users.id, DEFAULT_USER_ID)).limit(1);
-  return fallback;
+  return user ?? null;
+}
+
+/** For API routes: the current user, or a 401 response. */
+export async function requireUser(): Promise<{ ok: true; user: CurrentUser } | { ok: false; res: NextResponse }> {
+  const user = await getCurrentUser();
+  return user ? { ok: true, user } : { ok: false, res: json({ error: "unauthenticated", message: "Sign in first (demo identity)." }, 401) };
 }
 
 export async function loadCorpus(): Promise<Corpus> {

@@ -1,3 +1,4 @@
+import { getCurrentUser } from "@/server/app-context";
 import { PageHeader } from "@/components/primitives";
 import type { BenchReport } from "@/server/bench/harness";
 import { ALL_SCENARIOS } from "@/server/bench/scenarios";
@@ -8,6 +9,7 @@ import { LlmResults } from "./llm-results";
 export const metadata = { title: "Attack Lab" };
 
 export default async function AttackLabPage() {
+  if (!(await getCurrentUser())) return null;
   const [latest, history] = await Promise.all([latestBenchmark(), benchmarkHistory(8)]);
   const scenarios: ScenarioMeta[] = ALL_SCENARIOS.map((s) => ({
     id: s.id,

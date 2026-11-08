@@ -10,7 +10,8 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: [["list"]],
-  use: { baseURL: external ?? `http://localhost:${PORT}`, trace: "retain-on-failure" },
+  globalSetup: "./tests/e2e/global-setup.ts",
+  use: { baseURL: external ?? `http://localhost:${PORT}`, trace: "retain-on-failure", storageState: ".data/e2e-auth-alice.json" },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"] }, testIgnore: /responsive.spec.ts/ },
     { name: "mobile", use: { ...devices["Pixel 7"] }, testMatch: /responsive\.spec\.ts/ },

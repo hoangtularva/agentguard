@@ -26,6 +26,9 @@ services:
     environment:
       DATABASE_URL: postgres://agentguard:${POSTGRES_PASSWORD:-agentguard-local-only}@db:5432/agentguard
       AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in .env (>=16 chars)}
+      # DEMO ONLY: lets anyone who can reach the app pick any demo identity, including
+      # approvers. Safe here only because the port is bound to 127.0.0.1 below.
+      AGENTGUARD_DEMO_AUTH: ${AGENTGUARD_DEMO_AUTH:-1}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       AGENTGUARD_LLM_MODEL: ${AGENTGUARD_LLM_MODEL:-claude-opus-5-5}
       # Ollama running on the host machine (optional; the app works without it)

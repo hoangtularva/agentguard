@@ -1,6 +1,6 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { getAppPep, getCurrentUser } from "@/server/app-context";
+import { getAppPep, requireUser } from "@/server/app-context";
 import { getDb } from "@/server/db/client";
 import * as s from "@/server/db/schema";
 import { json, parseBody, sameOrigin } from "@/server/http";
@@ -19,10 +19,12 @@ const Body = z.object({
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   if (!sameOrigin(req)) return json({ error: "forbidden_origin" }, 403);
+  const auth = await requireUser();
+  if (!auth.ok) return auth.res;
   const { id } = await ctx.params;
   const body = await parseBody(req, Body);
   if (!body.ok) return body.res;
-  const user = await getCurrentUser();
+  const user = auth.user;
   const pep = await getAppPep();
   const r = await pep.executeApprovedAction({ approvalId: id, actorId: user.id, ...body.data });
   if (r.ok && !r.replayed) {
