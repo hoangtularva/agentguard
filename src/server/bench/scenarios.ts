@@ -24,7 +24,16 @@ export type ScenarioCategory =
   | "approval_manipulation"
   | "policy_escalation"
   | "missing_provenance"
-  | "multi_step";
+  | "multi_step"
+  | "benign_lookalike"
+  | "direct_injection"
+  | "indirect_document"
+  | "indirect_email"
+  | "tool_output_injection"
+  | "unauthorized_access"
+  | "exfiltration"
+  | "confused_deputy"
+  | "provenance_manipulation";
 
 export interface AgentScenario {
   kind: "agent";

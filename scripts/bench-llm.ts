@@ -18,6 +18,7 @@ import type { PlannerKind } from "../src/server/agent/planners";
 import { HOLDOUT_SCENARIOS } from "../src/server/bench/independent-scenarios";
 import { type LlmScenarioResult, computeLlmMetrics, runLlmBenchmark } from "../src/server/bench/llm-harness";
 import { AGENT_SCENARIOS } from "../src/server/bench/scenarios";
+import { LLM_V2_VERSION, V2_DEV, V2_HOLDOUT } from "../src/server/bench/llm-v2-scenarios";
 import { createDatabase } from "../src/server/db/client";
 
 function arg(name: string): string | undefined {
@@ -31,7 +32,18 @@ async function main() {
   const runs = Number(arg("runs") ?? 1);
   const ids = arg("ids")?.split(",");
   const model = arg("model") ?? (provider === "ollama" ? process.env.AGENTGUARD_OLLAMA_MODEL : undefined);
-  let scenarios = set === "development" ? AGENT_SCENARIOS : HOLDOUT_SCENARIOS;
+  const SETS: Record<string, { list: typeof AGENT_SCENARIOS; label: string; doc: string }> = {
+    development: { list: AGENT_SCENARIOS, label: "simulated development set (scenarios.ts)", doc: "benchmark-llm-development.md" },
+    holdout: { list: HOLDOUT_SCENARIOS, label: "phase-2 held-out set (independent-scenarios.ts)", doc: "benchmark-llm-latest.md" },
+    "v2-dev": { list: V2_DEV, label: `${LLM_V2_VERSION} DEV split (llm-v2-scenarios.ts)`, doc: "benchmark-llm-v2-dev.md" },
+    "v2-holdout": { list: V2_HOLDOUT, label: `${LLM_V2_VERSION} HOLDOUT split (llm-v2-scenarios.ts)`, doc: "benchmark-llm-v2-holdout.md" },
+  };
+  if (!SETS[set]) {
+    console.error(`Unknown --set ${set}. Use one of: ${Object.keys(SETS).join(", ")}`);
+    process.exit(2);
+  }
+  const seedBase = Number(arg("seed") ?? 42);
+  let scenarios = SETS[set].list;
   if (ids) scenarios = scenarios.filter((s) => ids.includes(s.id));
 
   const meta: Record<string, unknown> = {
@@ -66,7 +78,7 @@ async function main() {
   const started = Date.now();
 
   for (const sc of scenarios) {
-    const r = await runLlmBenchmark(db, { provider, model, runs, scenarios: [sc], datasetLabel: set }, (m) => console.log(`[${new Date().toISOString().slice(11, 19)}] ${m}`));
+    const r = await runLlmBenchmark(db, { provider, model, runs, seedBase, scenarios: [sc], datasetLabel: set }, (m) => console.log(`[${new Date().toISOString().slice(11, 19)}] ${m}`));
     results.push(...r.scenarios);
     lastConfig = r.config;
     fs.writeFileSync(checkpoint, JSON.stringify({ id, done: results.map((x) => x.id), results }, null, 2));
@@ -77,12 +89,14 @@ async function main() {
     track: "real-llm",
     startedAt: new Date(started).toISOString(),
     durationMs: Date.now() - started,
-    config: { ...lastConfig, ...meta, dataset: set === "development" ? "development set (src/server/bench/scenarios.ts)" : "held-out set (src/server/bench/independent-scenarios.ts)" },
+    config: { ...lastConfig, ...meta, dataset: SETS[set].label },
     metrics: computeLlmMetrics(results, scenarios),
     scenarios: results,
   };
   fs.writeFileSync(path.join(dir, `${id}.json`), JSON.stringify(report, null, 2));
-  fs.writeFileSync(path.join(dir, "latest-llm.json"), JSON.stringify(report, null, 2));
+  fs.writeFileSync(path.join(dir, set.startsWith("v2") ? `latest-llm-${set}.json` : "latest-llm.json"), JSON.stringify(report, null, 2));
+  fs.mkdirSync(path.join(process.cwd(), "docs", "results"), { recursive: true });
+  fs.writeFileSync(path.join(process.cwd(), "docs", "results", `${id}-${set}.json`), JSON.stringify(report, null, 2));
   fs.rmSync(checkpoint, { force: true });
 
   const m = report.metrics;
@@ -107,7 +121,7 @@ async function main() {
     "",
     "| Metric | Unguarded | AgentGuard |",
     "|---|---|---|",
-    `| Attack success rate | ${p(m.attackSuccessRate.unguarded)} | ${p(m.attackSuccessRate.guarded)} |`,
+    `| Attack success rate | ${p(m.attackSuccessRate.unguarded)} (95% CI ${p(m.ci95.attackSuccessUnguarded.lo)}–${p(m.ci95.attackSuccessUnguarded.hi)}) | ${p(m.attackSuccessRate.guarded)} (95% CI ${p(m.ci95.attackSuccessGuarded.lo)}–${p(m.ci95.attackSuccessGuarded.hi)}) |`,
     `| Attack attempt rate (model proposed a forbidden call) | ${p(m.attackAttemptRate.unguarded)} | ${p(m.attackAttemptRate.guarded)} |`,
     `| Legitimate task completion | ${p(m.taskCompletionRate.unguarded)} | ${p(m.taskCompletionRate.guarded)} |`,
     `| Unintended action executed on a legit task (e.g. hallucinated recipient) | ${p(m.unintendedActionRate.unguarded)} | ${p(m.unintendedActionRate.guarded)} |`,
@@ -123,20 +137,26 @@ async function main() {
     `| PDP evaluation p50 / p95 (in run) | ${m.latency.pdpEvalP50Ms} / ${m.latency.pdpEvalP95Ms} ms |`,
     `| Tokens in / out (all runs) | ${m.latency.inputTokensTotal} / ${m.latency.outputTokensTotal} |`,
     "",
+    `| Calls held for approval (share of all guarded calls) | — | ${p(m.approvalRate.reviewShareOfAllGuardedCalls)} (${m.approvalRate.approvedByReviewer} approved, ${m.approvalRate.rejectedByReviewer} rejected) |`,
+    `| False positive 95% CI | — | ${p(m.ci95.falsePositive.lo)}–${p(m.ci95.falsePositive.hi)} (n=${m.ci95.falsePositive.n}) |`,
+    `| Seeds | ${(cfg.seeds as number[] | undefined)?.join(", ") ?? "42"} | |`,
+    "",
+    "_CIs treat each scenario-run as independent; repetitions of one scenario are correlated, so intervals are optimistic._",
+    "",
     "## Outcomes",
     "",
     `Unguarded: ${JSON.stringify(m.outcomes.unguarded)}  `,
     `Guarded: ${JSON.stringify(m.outcomes.guarded)}`,
     "",
-    "## Per-scenario (run 1)",
+    "## Per-scenario (all runs: outcome per seed)",
     "",
-    "| ID | Category | Unguarded outcome | Unguarded calls | Guarded outcome | Guarded calls → decision |",
+    "| ID | Category | Unguarded outcome(s) | Unguarded calls (seed 1) | Guarded outcome(s) | Guarded calls → decision (seed 1) |",
     "|---|---|---|---|---|---|",
     ...results.map((r) => {
       const x = r.runs[0];
       const ug = x.unguarded.proposals.map((c) => `${c.tool}(${c.destination ?? c.resources.join(",")})${c.executed ? "✓" : ""}`).join("; ") || (x.unguarded.error ? `error: ${x.unguarded.error.slice(0, 60)}` : "—");
       const g = x.guarded.proposals.map((c) => `${c.tool}(${c.destination ?? c.resources.join(",")})→${c.decision}${c.reasonCodes?.length ? ` [${c.reasonCodes.join(",")}]` : ""}`).join("; ") || (x.guarded.error ? `error: ${x.guarded.error.slice(0, 60)}` : "—");
-      return `| ${r.id} | ${r.category} | ${x.unguarded.outcome} | ${ug} | ${x.guarded.outcome} | ${g} |`;
+      return `| ${r.id} | ${r.category} | ${r.runs.map((y) => y.unguarded.outcome).join(" / ")} | ${ug} | ${r.runs.map((y) => y.guarded.outcome).join(" / ")} | ${g} |`;
     }),
     "",
     "## Limitations",
@@ -147,7 +167,7 @@ async function main() {
     "- Defensive system prompt is on in both modes, so the unguarded baseline already includes prompt-level defense.",
     "",
   ].join("\n");
-  fs.writeFileSync(path.join(process.cwd(), "docs", set === "development" ? "benchmark-llm-development.md" : "benchmark-llm-latest.md"), md);
+  fs.writeFileSync(path.join(process.cwd(), "docs", SETS[set].doc), md);
   console.log(md.split("## Outcomes")[0]);
   process.exit(0);
 }
