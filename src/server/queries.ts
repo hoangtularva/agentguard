@@ -1,21 +1,33 @@
 import "server-only";
-import { and, count, desc, eq, gte, inArray, ne, sql } from "drizzle-orm";
+import { type SQL, and, count, desc, eq, gte, inArray, ne, or, sql } from "drizzle-orm";
 import { getDb } from "@/server/db/client";
 import * as s from "@/server/db/schema";
 import { DEFAULT_POLICY_ID } from "@/server/db/seed";
+import { canSeeAll } from "@/server/identity";
 
-/** Read models for the dashboard. Benchmark sessions run in an isolated DB and never appear here. */
+/**
+ * Read models for the dashboard. Every query is scoped to the viewer (Phase 3 fix F4):
+ * members see only their own sessions, tool calls, approvals and events; approvers and
+ * admins see everything. Benchmark sessions run in an isolated DB and never appear here.
+ */
+export type Viewer = { id: string; role: string };
 
-export async function overviewStats() {
+const own = (v: Viewer) => !canSeeAll(v.role);
+
+export async function overviewStats(v: Viewer) {
   const db = await getDb();
-  const rows = await db.select({ decision: s.toolCalls.decision, n: count() }).from(s.toolCalls).groupBy(s.toolCalls.decision);
+  const tcScope = own(v) ? eq(s.toolCalls.userId, v.id) : undefined;
+  const rows = await db.select({ decision: s.toolCalls.decision, n: count() }).from(s.toolCalls).where(tcScope).groupBy(s.toolCalls.decision);
   const by = Object.fromEntries(rows.map((r) => [r.decision, Number(r.n)])) as Record<string, number>;
-  const [pending] = await db.select({ n: count() }).from(s.approvals).where(eq(s.approvals.status, "pending"));
+  const [pending] = await db
+    .select({ n: count() })
+    .from(s.approvals)
+    .where(and(eq(s.approvals.status, "pending"), own(v) ? eq(s.approvals.requestedFor, v.id) : undefined));
   const [events] = await db
     .select({ n: count() })
     .from(s.auditEvents)
-    .where(inArray(s.auditEvents.severity, ["warning", "critical"]));
-  const [sessions] = await db.select({ n: count() }).from(s.agentSessions);
+    .where(and(inArray(s.auditEvents.severity, ["warning", "critical"]), eventScope(v)));
+  const [sessions] = await db.select({ n: count() }).from(s.agentSessions).where(own(v) ? eq(s.agentSessions.userId, v.id) : undefined);
   const since = new Date(Date.now() - 13 * 86400_000);
   since.setHours(0, 0, 0, 0);
   const daily = await db
@@ -25,12 +37,13 @@ export async function overviewStats() {
       n: count(),
     })
     .from(s.toolCalls)
-    .where(gte(s.toolCalls.createdAt, since))
+    .where(and(gte(s.toolCalls.createdAt, since), tcScope))
     .groupBy(sql`1`, s.toolCalls.decision);
+  const userFilter = own(v) ? sql`and user_id = ${v.id}` : sql``;
   const reasons = await db.execute(sql`
     select r->>'code' as code, count(*)::int as n
     from tool_calls, jsonb_array_elements(reasons) r
-    where decision <> 'ALLOW' and r->>'code' <> 'RULE_MATCHED'
+    where decision <> 'ALLOW' and r->>'code' <> 'RULE_MATCHED' ${userFilter}
     group by 1 order by 2 desc limit 6`);
   return {
     total: (by.ALLOW ?? 0) + (by.REVIEW ?? 0) + (by.BLOCK ?? 0),
@@ -43,10 +56,11 @@ export async function overviewStats() {
     daily: daily.map((d) => ({ day: d.day, decision: d.decision, n: Number(d.n) })),
     since: since.toISOString(),
     topReasons: ((reasons as unknown as { rows: { code: string; n: number }[] }).rows ?? []).map((r) => ({ code: r.code, n: Number(r.n) })),
+    scope: own(v) ? ("own" as const) : ("all" as const),
   };
 }
 
-export async function recentToolCalls(limit = 12) {
+export async function recentToolCalls(v: Viewer, limit = 12) {
   const db = await getDb();
   return db
     .select({
@@ -61,11 +75,12 @@ export async function recentToolCalls(limit = 12) {
       reasons: s.toolCalls.reasons,
     })
     .from(s.toolCalls)
+    .where(own(v) ? eq(s.toolCalls.userId, v.id) : undefined)
     .orderBy(desc(s.toolCalls.createdAt))
     .limit(limit);
 }
 
-export async function listApprovals() {
+export async function listApprovals(v: Viewer) {
   const db = await getDb();
   return db
     .select({
@@ -86,13 +101,23 @@ export async function listApprovals() {
     .from(s.approvals)
     .innerJoin(s.toolCalls, eq(s.toolCalls.id, s.approvals.toolCallId))
     .innerJoin(s.agentSessions, eq(s.agentSessions.id, s.approvals.sessionId))
+    .where(own(v) ? eq(s.approvals.requestedFor, v.id) : undefined)
     .orderBy(desc(s.approvals.createdAt))
     .limit(100);
 }
 
-export async function listEvents(filter: { decision?: string; severity?: string; type?: string; session?: string }) {
+/** Events a viewer may see: own actions, or events of own sessions. */
+function eventScope(v: Viewer): SQL | undefined {
+  if (!own(v)) return undefined;
+  return or(
+    eq(s.auditEvents.actorId, v.id),
+    inArray(s.auditEvents.sessionId, sql`(select id from agent_sessions where user_id = ${v.id})`),
+  );
+}
+
+export async function listEvents(v: Viewer, filter: { decision?: string; severity?: string; type?: string; session?: string }) {
   const db = await getDb();
-  const conds = [];
+  const conds: (SQL | undefined)[] = [eventScope(v)];
   if (filter.decision) conds.push(eq(s.auditEvents.decision, filter.decision));
   if (filter.severity) conds.push(eq(s.auditEvents.severity, filter.severity as "info"));
   if (filter.type) conds.push(sql`${s.auditEvents.type} like ${filter.type + "%"}`);
@@ -100,30 +125,40 @@ export async function listEvents(filter: { decision?: string; severity?: string;
   return db
     .select()
     .from(s.auditEvents)
-    .where(conds.length ? and(...conds) : undefined)
+    .where(and(...conds))
     .orderBy(desc(s.auditEvents.createdAt))
     .limit(200);
 }
 
-export async function toolCallsByIds(ids: string[]) {
+export async function toolCallsByIds(v: Viewer, ids: string[]) {
   if (ids.length === 0) return [];
   const db = await getDb();
-  return db.select().from(s.toolCalls).where(inArray(s.toolCalls.id, ids));
+  return db
+    .select()
+    .from(s.toolCalls)
+    .where(and(inArray(s.toolCalls.id, ids), own(v) ? eq(s.toolCalls.userId, v.id) : undefined));
 }
 
-export async function sessionDetail(id: string) {
+/** Returns null both for unknown sessions and for sessions the viewer may not see (no existence oracle). */
+export async function sessionDetail(v: Viewer, id: string) {
   const db = await getDb();
   const [session] = await db.select().from(s.agentSessions).where(eq(s.agentSessions.id, id)).limit(1);
   if (!session) return null;
+  if (own(v) && session.userId !== v.id) return null;
   const calls = await db.select().from(s.toolCalls).where(eq(s.toolCalls.sessionId, id)).orderBy(s.toolCalls.createdAt);
   const sources = await db.select().from(s.provenanceSources).where(eq(s.provenanceSources.sessionId, id)).orderBy(s.provenanceSources.createdAt);
   const effects = await db.select().from(s.sandboxEffects).where(eq(s.sandboxEffects.sessionId, id));
   return { session, calls, sources, effects };
 }
 
-export async function recentSessions(limit = 8) {
+export async function recentSessions(v: Viewer, limit = 8) {
   const db = await getDb();
-  return db.select().from(s.agentSessions).where(ne(s.agentSessions.origin, "benchmark")).orderBy(desc(s.agentSessions.createdAt)).limit(limit);
+  return db
+    .select()
+    .from(s.agentSessions)
+    .where(and(ne(s.agentSessions.origin, "benchmark"), own(v) ? eq(s.agentSessions.userId, v.id) : undefined))
+    .orderBy(desc(s.agentSessions.createdAt))
+    .limit(limit);
 }
 
 export async function policyState() {

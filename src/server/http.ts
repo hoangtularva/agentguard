@@ -6,14 +6,39 @@ export function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status });
 }
 
-/** Parse a JSON body with a Zod schema; returns a 400 response on failure. */
+/** Max accepted JSON body. Bodies are read with a hard cap so oversized requests are refused early (finding F5). */
+export const MAX_BODY_BYTES = 64 * 1024;
+
+async function readCapped(req: Request): Promise<string | null> {
+  const declared = Number(req.headers.get("content-length") ?? "0");
+  if (declared > MAX_BODY_BYTES) return null;
+  if (!req.body) return "";
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > MAX_BODY_BYTES) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+/** Parse a JSON body with a Zod schema; returns a 400/413 response on failure. */
 export async function parseBody<T extends z.ZodType>(
   req: Request,
   schema: T,
 ): Promise<{ ok: true; data: z.infer<T> } | { ok: false; res: NextResponse }> {
   let raw: unknown;
+  const text = await readCapped(req);
+  if (text === null) return { ok: false, res: json({ error: "payload_too_large", limitBytes: MAX_BODY_BYTES }, 413) };
   try {
-    raw = await req.json();
+    raw = JSON.parse(text);
   } catch {
     return { ok: false, res: json({ error: "invalid_json" }, 400) };
   }

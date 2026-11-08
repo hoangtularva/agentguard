@@ -1,3 +1,4 @@
+import { requireUser } from "@/server/app-context";
 import { z } from "zod";
 import { llmConfigured } from "@/server/agent/claude-planner";
 import { runBenchmark } from "@/server/bench/harness";
@@ -22,6 +23,10 @@ const Body = z.object({
  */
 export async function POST(req: Request) {
   if (!sameOrigin(req)) return json({ error: "forbidden_origin" }, 403);
+  const auth = await requireUser();
+  if (!auth.ok) return auth.res;
+  // Benchmarks are CPU-heavy: restricted to approvers/admins (Phase 3 finding F7).
+  if (auth.user.role === "member") return json({ error: "forbidden", message: "Only approvers or admins can run the benchmark." }, 403);
   const body = await parseBody(req, Body);
   if (!body.ok) return body.res;
   if (body.data.planner === "claude" && !llmConfigured()) return json({ error: "llm_not_configured" }, 400);

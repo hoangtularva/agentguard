@@ -6,7 +6,9 @@ import { PolicyStudio } from "./policy-studio";
 export const metadata = { title: "Policy Studio" };
 
 export default async function PoliciesPage() {
-  const [{ versions, activeVersion }, user] = await Promise.all([policyState(), getCurrentUser()]);
+  const user = await getCurrentUser();
+  if (!user) return null;
+  const { versions, activeVersion } = await policyState();
   return (
     <>
       <PageHeader

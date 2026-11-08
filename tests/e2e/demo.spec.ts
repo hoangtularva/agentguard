@@ -19,6 +19,8 @@ test.describe("Agent Playground", () => {
 
 test.describe("Attack Lab", () => {
   test("runs the full suite and every scenario passes", async ({ page }) => {
+    // Benchmarks are restricted to approvers (Phase 3 F7): sign in as Bob.
+    expect((await page.request.post("/api/identity", { data: { userId: "u_bob" } })).ok()).toBeTruthy();
     await page.goto("/attack-lab");
     await page.getByRole("button", { name: "Run simulation" }).click();
     await expect(page.getByText(/All \d+ scenarios passed/)).toBeVisible({ timeout: 90_000 });

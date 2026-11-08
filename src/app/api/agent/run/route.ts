@@ -3,7 +3,7 @@ import { z } from "zod";
 import { LLMPlanner } from "@/server/agent/llm/llm-planner";
 import { PLANNER_KINDS, makePlanner, plannerAvailability } from "@/server/agent/planners";
 import { runAgent } from "@/server/agent/runtime";
-import { getAppPep, getCurrentUser } from "@/server/app-context";
+import { getAppPep, requireUser } from "@/server/app-context";
 import { getDb } from "@/server/db/client";
 import * as s from "@/server/db/schema";
 import { DEFAULT_POLICY_ID, DEMO_AGENT_ID } from "@/server/db/seed";
@@ -23,6 +23,8 @@ const Body = z.object({
 
 export async function POST(req: Request) {
   if (!sameOrigin(req)) return json({ error: "forbidden_origin" }, 403);
+  const auth = await requireUser();
+  if (!auth.ok) return auth.res;
   const body = await parseBody(req, Body);
   if (!body.ok) return body.res;
   const { prompt, tools, scope, destinations, planner: plannerKind } = body.data;
@@ -44,7 +46,7 @@ export async function POST(req: Request) {
   }
 
   const handle = async () => {
-  const user = await getCurrentUser();
+  const user = auth.user;
   const pep = await getAppPep();
   const planner = makePlanner(plannerKind);
   const session = await pep.startSession({

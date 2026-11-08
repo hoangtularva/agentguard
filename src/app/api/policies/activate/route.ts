@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getCurrentUser } from "@/server/app-context";
+import { requireUser } from "@/server/app-context";
 import { getDb } from "@/server/db/client";
 import { DEFAULT_POLICY_ID } from "@/server/db/seed";
 import { PolicyNotFoundError, activatePolicyVersion } from "@/server/enforcement/policy-store";
@@ -11,7 +11,9 @@ const Body = z.object({ version: z.number().int().min(1) });
 
 export async function POST(req: Request) {
   if (!sameOrigin(req)) return json({ error: "forbidden_origin" }, 403);
-  const user = await getCurrentUser();
+  const auth = await requireUser();
+  if (!auth.ok) return auth.res;
+  const user = auth.user;
   if (user.role === "member") return json({ error: "forbidden", message: "Only approvers or admins can change policy." }, 403);
   const body = await parseBody(req, Body);
   if (!body.ok) return body.res;

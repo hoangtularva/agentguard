@@ -7,7 +7,9 @@ import { ApprovalCard, type ApprovalView } from "./approval-card";
 export const metadata = { title: "Approval Inbox" };
 
 export default async function ApprovalsPage() {
-  const [rows, user] = await Promise.all([listApprovals(), getCurrentUser()]);
+  const user = await getCurrentUser();
+  if (!user) return null;
+  const rows = await listApprovals(user);
   const views: ApprovalView[] = rows.map(({ approval: a, call, session, expiredNow }) => {
     const expired = a.status === "pending" || a.status === "approved" ? Boolean(expiredNow) : a.status === "expired";
     return {
