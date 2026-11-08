@@ -4,7 +4,7 @@ import { runBenchmark } from "@/server/bench/harness";
 import { createDatabase } from "@/server/db/client";
 import { getDb } from "@/server/db/client";
 import * as s from "@/server/db/schema";
-import { json, parseBody, sameOrigin } from "@/server/http";
+import { exclusive, json, parseBody, sameOrigin } from "@/server/http";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -25,8 +25,12 @@ export async function POST(req: Request) {
   const body = await parseBody(req, Body);
   if (!body.ok) return body.res;
   if (body.data.planner === "claude" && !llmConfigured()) return json({ error: "llm_not_configured" }, 400);
-  const isolated = await createDatabase({ url: "", pgliteDir: "memory" });
-  const report = await runBenchmark(isolated, body.data);
+  const run = await exclusive("benchmark", async () => {
+    const isolated = await createDatabase({ url: "", pgliteDir: "memory" });
+    return runBenchmark(isolated, body.data);
+  });
+  if (!run.ok) return run.res;
+  const report = run.value;
   const db = await getDb();
   await db.insert(s.benchmarkRuns).values({
     id: report.id,

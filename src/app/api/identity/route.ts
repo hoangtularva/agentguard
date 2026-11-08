@@ -17,6 +17,6 @@ export async function POST(req: Request) {
   const [user] = await (await getDb()).select().from(s.users).where(eq(s.users.id, body.data.userId)).limit(1);
   if (!user) return json({ error: "unknown_user" }, 404);
   const res = json({ ok: true, user: { id: user.id, name: user.name, role: user.role } });
-  res.cookies.set(IDENTITY_COOKIE, encodeIdentity(user.id), { httpOnly: true, sameSite: "lax", path: "/", secure: process.env.NODE_ENV === "production" });
+  res.cookies.set(IDENTITY_COOKIE, encodeIdentity(user.id), { httpOnly: true, sameSite: "lax", path: "/", secure: process.env.NODE_ENV === "production", maxAge: 8 * 3600 });
   return res;
 }
