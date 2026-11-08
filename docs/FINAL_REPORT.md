@@ -66,11 +66,11 @@ See [README.md](../README.md): `npm install`, `cp .env.example .env`, `npm run d
 
 # Phase 2 report — 2026-11-08
 
-**Status: PARTIALLY COMPLETE.** 9 of 10 Phase 2 acceptance criteria are verified. Criterion 1 (Docker Compose) is **BLOCKED**: installing Docker Desktop and the WSL 2 kernel requires Administrator rights, which the rules reserve for you. Exact steps: [setup-windows.md § C](setup-windows.md), [BLOCKERS.md](BLOCKERS.md) B-01.
+**Status: COMPLETE.** All 10 Phase 2 acceptance criteria are verified. Docker was the last blocker; it was installed at the user's request (the user approved the UAC prompts; the installer ran without --accept-license, so Docker's terms are shown to the user in Docker Desktop itself) and the stack passed health checks and the full e2e suite.
 
 | # | Criterion | Status | Evidence |
 |---|---|---|---|
-| 1 | Docker Compose runs in a verified environment | ⛔ BLOCKED (admin) | Production build no longer needs a DB; standalone server, node-postgres path and real PG16 verified separately |
+| 1 | Docker Compose runs in a verified environment | ✅ | Docker Desktop 4.98.0 / Engine 29.9.2 / Compose v5.6.1 (WSL 2). db + app healthy, 7 routes 200, migrations on PG 16.15, data persists across restart, **Playwright 13/13 against the stack** |
 | 2 | Real PostgreSQL passes integration/concurrency tests | ✅ | `npm run test:pg` 11/11 on PostgreSQL 16 (10-connection pool) |
 | 3 | Ollama runs a real LLM | ✅ | Ollama 0.40.15 (SHA-256 verified zip), `qwen2.5:3b` digest `357c53fb659c…` |
 | 4 | AgentGuard handles tool calls from a real LLM | ✅ | `bench:llm` on 14 held-out scenarios × 2 runs; Playground run with Ollama verified in the browser |
@@ -112,7 +112,7 @@ f9dd12f security: Sec-Fetch-Site CSRF check, single-flight guard for LLM/benchma
 ```
 Plus the final commit containing this report. Nothing was pushed (no remote).
 
-## What you need to do
-1. **Docker (admin, once):** run `wsl --update` in an admin terminal → install Docker Desktop → reboot if asked → `docker compose up --build -d` → `$env:E2E_BASE_URL="http://localhost:3000"; npm run test:e2e`.
+## How to use it
+1. **Docker stack:** `docker compose up -d` in `agentguard` (open a *new* terminal so Docker is on PATH) → http://localhost:3000. `docker compose down` keeps the data volume; `down -v` deletes it.
 2. **To use Ollama again later:** `D:\AI Master\_tools\ollama\ollama.exe serve` (set `OLLAMA_MODELS=D:\AI Master\_tools\ollama-models` first).
 3. Optional: an Anthropic key for `npm run bench:llm -- --provider anthropic`.

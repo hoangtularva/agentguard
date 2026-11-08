@@ -1,6 +1,6 @@
 # Progress log (checkpoint for resuming)
 
-**Resume here (Phase 2, 2026-11-08):** repository at `D:\AI Master\agentguard`. Ollama portable in `D:\AI Master\_tools\ollama` (start: `ollama.exe serve` with `OLLAMA_MODELS=D:\AI Master\_tools\ollama-models`), model qwen2.5:3b pulled. Remaining blocker: Docker (admin). See [PHASE2_PLAN.md](PHASE2_PLAN.md), [BLOCKERS.md](BLOCKERS.md).
+**Resume here (Phase 2, 2026-11-08):** repository at `D:\AI Master\agentguard`. Ollama portable in `D:\AI Master\_tools\ollama` (start: `ollama.exe serve` with `OLLAMA_MODELS=D:\AI Master\_tools\ollama-models`), model qwen2.5:3b pulled. All Phase 2 criteria verified (Docker stack included). See [PHASE2_PLAN.md](PHASE2_PLAN.md), [BLOCKERS.md](BLOCKERS.md).
 
 Quality gate commands (all run green at the last checkpoint):
 
@@ -24,3 +24,4 @@ npm run lint && npm run typecheck && npm test && npm run test:e2e && npm run ben
 | 12 | 2026-11-08 | Dependency audit fixes (vitest 5, remove cn, shadcn→dev) | package.json | 6c7d4ac | vitest 66, test:pg 11 | prod audit 0 |
 | 13 | 2026-11-08 | Security hardening (Sec-Fetch-Site, single-flight, cookie max-age) | http.ts, routes | f9dd12f | lint, tsc | — |
 | 14 | 2026-11-08 | Real-LLM benchmark run (held-out, qwen2.5:3b, CPU); H04 oracle fix | bench results, docs | (next commit) | bench:llm | see benchmark-llm-latest.md |
+| 15 | 2026-11-08 | Docker: wsl --update + Docker Desktop 4.98 install (user approved UAC; installer run without --accept-license); compose up; health, HTTP, migrations, persistence; e2e against the stack | docker-compose.yml, docs | (this commit) | e2e 13/13 on Docker | Phase 2 COMPLETE |

@@ -53,7 +53,7 @@ Docker Desktop on Windows uses the WSL 2 backend. Official docs: https://docs.do
 
 1. **Admin PowerShell:** `wsl --update` (installs the WSL 2 kernel). Reboot if asked.
 2. Install Docker Desktop from the official page (needs admin; accept its license). Keep "Use WSL 2 based engine" ticked. Reboot if asked.
-3. Start Docker Desktop and wait for "Engine running". Then, in a normal terminal:
+3. Start Docker Desktop, accept its terms on first launch, and wait for "Engine running". Then, in a **new** terminal (one opened before the install won't have Docker on PATH, and `compose up` fails with `docker-credential-desktop: executable file not found`):
    ```powershell
    docker version
    docker compose version
