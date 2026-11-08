@@ -7,7 +7,7 @@ import { getAppPep, getCurrentUser } from "@/server/app-context";
 import { getDb } from "@/server/db/client";
 import * as s from "@/server/db/schema";
 import { DEFAULT_POLICY_ID, DEMO_AGENT_ID } from "@/server/db/seed";
-import { json, parseBody, sameOrigin } from "@/server/http";
+import { exclusive, json, parseBody, sameOrigin } from "@/server/http";
 import { TOOL_NAMES } from "@/server/tools/registry";
 
 export const runtime = "nodejs";
@@ -43,6 +43,7 @@ export async function POST(req: Request) {
       return json({ error: "llm_unavailable", message: "Set ANTHROPIC_API_KEY to use the Anthropic planner." }, 503);
   }
 
+  const handle = async () => {
   const user = await getCurrentUser();
   const pep = await getAppPep();
   const planner = makePlanner(plannerKind);
@@ -90,4 +91,10 @@ export async function POST(req: Request) {
       evalLatencyMs: st.result.evalLatencyMs,
     })),
   });
+  };
+
+  // A local model on CPU can take minutes per run: allow one LLM run at a time.
+  if (plannerKind === "simulated") return handle();
+  const r = await exclusive("LLM agent run", handle);
+  return r.ok ? r.value : r.res;
 }
