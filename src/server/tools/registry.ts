@@ -7,7 +7,7 @@ import type { RiskLevel } from "@/server/core/types";
  * Policy Enforcement Point (enforced by an ESLint rule and a unit test).
  */
 
-const ResourceId = z.string().min(1).max(120).regex(/^[a-z]+:[a-z0-9_\-/.]+$/i, "invalid resource id");
+const ResourceId = z.string().min(1).max(120).regex(/^[a-z]+:[a-z0-9_\-/.]+$/i, "must be a full resource id including its prefix, e.g. doc:public/handbook or ds:sales_q3");
 
 export const ReadDocumentsArgs = z
   .object({ documentIds: z.array(ResourceId).min(1).max(10) })
@@ -51,7 +51,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
   read_documents: {
     name: "read_documents",
     title: "Read Documents",
-    description: "Read one or more documents or datasets from the company corpus by id (e.g. doc:public/handbook).",
+    description: "Read one or more documents or datasets from the company corpus. Pass ids exactly as the user wrote them, including the doc: or ds: prefix (e.g. doc:public/handbook).",
     risk: "low",
     kind: "source",
     argsSchema: ReadDocumentsArgs,
