@@ -103,7 +103,7 @@ Local LLM: start Ollama and `ollama pull qwen2.5:3b`, then pick **Ollama** in th
 docker compose up --build
 ```
 
-Set `AUTH_SECRET` in `.env` first. ⚠️ **Not verified:** installing Docker Desktop needs Administrator rights, which were not available. The standalone server, the node-postgres path, and a full suite on a **real PostgreSQL 16 server** were verified instead. See [docs/BLOCKERS.md](docs/BLOCKERS.md).
+Set `AUTH_SECRET` in `.env` first. Verified on Windows 10 with Docker Desktop 4.98 (WSL 2): both services healthy, migrations applied on PostgreSQL 16, and the full Playwright suite passes against the stack (`E2E_BASE_URL=http://localhost:3000 npm run test:e2e`). The app reaches Ollama on the host through `host.docker.internal`.
 
 ## Run the tests and the benchmark
 
@@ -151,7 +151,7 @@ docs/                    architecture, threat model, benchmark, decisions, progr
 
 ## Limitations
 
-The demo identity is not authentication. The audit log is not hash-chained. PEP and executors share one process. Docker Compose and the Anthropic planner are **not verified** here. Provenance is value-level (obfuscated or hallucinated destinations become "model-generated" and are default-denied, but paraphrased content to an *allowed* destination is not detected). The scenarios are self-authored. More in [docs/threat-model.md § Residual risks](docs/threat-model.md).
+The demo identity is not authentication. The audit log is not hash-chained. PEP and executors share one process. The Anthropic planner is **not verified** here (no API key). Provenance is value-level (obfuscated or hallucinated destinations become "model-generated" and are default-denied, but paraphrased content to an *allowed* destination is not detected). The scenarios are self-authored. More in [docs/threat-model.md § Residual risks](docs/threat-model.md).
 
 ## Roadmap
 

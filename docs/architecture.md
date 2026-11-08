@@ -86,6 +86,6 @@ Then the executor runs in a transaction that inserts `executions` with unique `t
 | AC6 | ≥ 30 scenarios with expected decisions, automated, baseline comparison | 37 scenarios, `tests/integration/benchmark.test.ts` |
 | AC7 | Playground, Approval Inbox, Policy Studio, Events, Attack Lab work for real | Playwright `tests/e2e/demo.spec.ts` |
 | AC8 | Responsive, light and dark | Playwright mobile project; manual dark/light check |
-| AC9 | Docker Compose runs the stack | **BLOCKED** (needs admin to install Docker Desktop / WSL kernel); standalone server, wire-protocol path and real PostgreSQL 16 suite verified |
+| AC9 | Docker Compose runs the stack | Verified: healthy services, migrations on PG 16.15, Playwright 13/13 against the stack |
 | AC10 | Real PostgreSQL concurrency | `npm run test:pg` (11 tests, 10-connection pool) |
 | AC11 | Real LLM tool calls go through the PEP | `tests/integration/llm-provider.test.ts` (malicious fake provider), `npm run bench:llm` with Ollama |

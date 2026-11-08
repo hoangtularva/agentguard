@@ -35,7 +35,7 @@ Status: DONE · PARTIAL · NOT VERIFIED · TODO. Evidence points at tests or com
 | ID | Pri | Task | Acceptance criteria | Status | Evidence |
 |---|---|---|---|---|---|
 | W-30 | P0 | Environment audit + plan | Hardware, OS, WSL, Docker, Ollama, Postgres checked | DONE | docs/PHASE2_PLAN.md |
-| W-31 | P0 | Docker Desktop + Compose verified | `docker compose up` healthy + e2e against it | **BLOCKED** (admin) | BLOCKERS B-01 |
+| W-31 | P0 | Docker Desktop + Compose verified | `docker compose up` healthy + e2e against it | DONE | BLOCKERS B-01; e2e 13/13 on the stack |
 | W-32 | P0 | Real PostgreSQL integration & concurrency | migrations, transactions, concurrent approvals, idempotency, replay, policy change, session consistency, connection failure, rollback | DONE | `npm run test:pg` 11/11 |
 | W-33 | P0 | Fix non-atomic claim/execute | Failure after claim leaves approval re-usable, no side effect | DONE | rollback test fails on the old code, passes on the new |
 | W-34 | P1 | LLM provider adapter (simulated/Ollama/Anthropic) | Common interface, timeout, errors, usage; providers cannot reach executors | DONE | `llm-provider.test.ts` 5/5 |

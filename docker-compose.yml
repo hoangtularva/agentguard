@@ -28,6 +28,11 @@ services:
       AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in .env (>=16 chars)}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       AGENTGUARD_LLM_MODEL: ${AGENTGUARD_LLM_MODEL:-claude-opus-5-5}
+      # Ollama running on the host machine (optional; the app works without it)
+      OLLAMA_HOST: ${OLLAMA_HOST_FROM_DOCKER:-http://host.docker.internal:11434}
+      AGENTGUARD_OLLAMA_MODEL: ${AGENTGUARD_OLLAMA_MODEL:-qwen2.5:3b}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "127.0.0.1:3000:3000"
 

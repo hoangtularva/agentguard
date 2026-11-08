@@ -1,12 +1,14 @@
 # Blockers and unverified items
 
-Updated 2026-11-08 (Phase 2).
+Updated 2026-11-08 (Phase 2, after Docker install).
 
-| ID | Item | Status | What was done | What the user must do |
-|---|---|---|---|---|
-| B-01 | Docker Compose stack | **BLOCKED — needs Administrator** | Audit: Windows 10 Pro 22H2 x64, hypervisor present, WSL installed (default v2) but **WSL 2 kernel missing**, no distro, Docker not installed. Both `wsl --update` and the Docker Desktop installer need elevation and may need a reboot, so neither was attempted (the rules say ask first). Verified instead: standalone production build serves HTTP 200; node-postgres path over the wire protocol; full suite on a **real PostgreSQL 16** server (B-02). `docker-compose.yml` is unchanged and still **NOT VERIFIED**. | Follow [setup-windows.md § C](setup-windows.md): admin `wsl --update` → install Docker Desktop (WSL 2 backend) → reboot if asked → `docker compose up --build -d` → `$env:E2E_BASE_URL="http://localhost:3000"; npm run test:e2e` |
-| B-02 | Multi-connection locking on real PostgreSQL | **RESOLVED** | `npm run test:pg`: 11 tests on a real PostgreSQL 16.x server (official binaries via `embedded-postgres`, no admin) with a 10-connection pool. Found and fixed a non-atomic claim/execute (see FINAL_REPORT) | — |
-| B-03 | Real LLM | **RESOLVED (local)** | Ollama 0.40.15 (portable zip, SHA-256 verified) + `qwen2.5:3b` on CPU. Real-LLM benchmark run on the held-out set. The Anthropic path is still **NOT VERIFIED** (no API key; not needed) | Optional: set `ANTHROPIC_API_KEY`, then `npm run bench:llm -- --provider anthropic` |
-| B-04 | WSL kernel auto-update disabled by Windows Update settings | Informational | Reported by `wsl --status` | Optional: enable "Receive updates for other Microsoft products" |
+| ID | Item | Status | Evidence |
+|---|---|---|---|
+| B-01 | Docker Compose stack | **RESOLVED** | With the user's go-ahead: `wsl --update` (elevated, user approved UAC) → Docker Desktop 4.98.0 installer from desktop.docker.com, Authenticode **Valid** (signed by Docker Inc, DigiCert CA) → `install --quiet --backend=wsl-2` (elevated, without `--accept-license`, so Docker's terms are presented to the user by Docker Desktop). Engine 29.9.2, Compose v5.6.1. `docker compose config` valid; `up --build -d` → db + app **healthy**; 7 routes HTTP 200; migrations applied (1 migration, 13 tables) on PostgreSQL 16.15 in the container; data persisted across an app restart; no errors in the logs; **Playwright 13/13 against the stack** (`E2E_BASE_URL=http://localhost:3000`); container reaches host Ollama via `host.docker.internal` |
+| B-02 | Multi-connection locking on real PostgreSQL | **RESOLVED** | `npm run test:pg` 11/11 (real PG16, 10-connection pool) |
+| B-03 | Real LLM | **RESOLVED (local)** | Ollama 0.40.15 + qwen2.5:3b; real-LLM benchmark on the held-out set (2 runs). Anthropic path **NOT VERIFIED** (no API key; optional) |
+| B-04 | WSL kernel auto-update disabled in Windows Update settings | Informational | Optional: enable "Receive updates for other Microsoft products" |
+
+**Known gotcha:** a terminal opened *before* the Docker install does not have `C:\Program Files\Docker\Docker\resources\bin` on PATH, so `docker compose up` fails with `docker-credential-desktop: executable file not found`. Open a new terminal (or add that folder to PATH).
 
 Nothing was pushed, deployed or sent externally. No paid service was used.

@@ -31,3 +31,5 @@
 | D-22 | Defensive system prompt on in both modes | Naive prompt for the baseline | Measure the guard's value *on top of* the shipped prompt defense, not against a strawman |
 | D-23 | Single-flight guard for LLM runs and benchmarks (429) | No limit | A CPU-bound local model is easy to exhaust; cheap demo-level DoS protection |
 | D-24 | vitest 5; `shadcn` CLI moved to devDependencies; stray `cn` package removed | Leave as is | Clears critical advisories (dev-only); production audit: 0 vulnerabilities |
+| D-25 | Compose passes `OLLAMA_HOST=http://host.docker.internal:11434` + `extra_hosts: host-gateway` | Run Ollama in a container | Reuses the model already pulled on the host; the app degrades gracefully if Ollama is absent |
+| D-26 | Docker Desktop installed with `--quiet --backend=wsl-2` but **without** `--accept-license` | Pass `--accept-license` | Accepting third-party terms is the user's call, not the agent's; Docker Desktop presents them itself |
