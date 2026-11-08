@@ -1,6 +1,6 @@
 # Progress log (checkpoint for resuming)
 
-**Resume here:** all P0–P4 tasks are done except W-20 (Docker, not verifiable on this machine) and W-09 (LLM planner run, needs an API key). Next: [WORK_QUEUE.md](WORK_QUEUE.md) rows W-23 to W-25. Blockers: [BLOCKERS.md](BLOCKERS.md).
+**Resume here (Phase 2, 2026-11-08):** repository at `D:\AI Master\agentguard`. Ollama portable in `D:\AI Master\_tools\ollama` (start: `ollama.exe serve` with `OLLAMA_MODELS=D:\AI Master\_tools\ollama-models`), model qwen2.5:3b pulled. Remaining blocker: Docker (admin). See [PHASE2_PLAN.md](PHASE2_PLAN.md), [BLOCKERS.md](BLOCKERS.md).
 
 Quality gate commands (all run green at the last checkpoint):
 
@@ -18,3 +18,9 @@ npm run lint && npm run typecheck && npm test && npm run test:e2e && npm run ben
 | 6 | 2026-11-07 | W-21, W-22 docs + generated benchmark results | `README.md`, `docs/*` | 4cd2160 | `npm run bench` (3 runs) | 37/37, deterministic |
 | 7 | 2026-11-07 | Fix: session completion with multiple open approvals | `approvals.ts`, execute route | 1b9b559 | vitest 61, Playwright 13 | Pass |
 | 8 | 2026-11-07 | Progress + final report | `docs/PROGRESS.md`, `docs/FINAL_REPORT.md` | (this commit) | — | — |
+| 9 | 2026-11-08 | Phase 0 audit; git history restored after the folder move | docs/PHASE2_PLAN.md | 9dba276 | — | Docker blocked (admin) |
+| 10 | 2026-11-08 | Real PostgreSQL 16 suite; atomic claim+execute fix; pool error handler | tests/postgres/*, pep.ts, client.ts | 9dba276 | test:pg 11/11, vitest 61 | Bug reproduced on old code |
+| 11 | 2026-11-08 | LLM provider adapter, held-out set, bench:llm, UI provider picker, Attack Lab export/LLM panel | src/server/agent/llm/*, src/server/bench/*, scripts/bench-llm.ts | bebfa42 | vitest 66 | — |
+| 12 | 2026-11-08 | Dependency audit fixes (vitest 5, remove cn, shadcn→dev) | package.json | 6c7d4ac | vitest 66, test:pg 11 | prod audit 0 |
+| 13 | 2026-11-08 | Security hardening (Sec-Fetch-Site, single-flight, cookie max-age) | http.ts, routes | f9dd12f | lint, tsc | — |
+| 14 | 2026-11-08 | Real-LLM benchmark run (held-out, qwen2.5:3b, CPU); H04 oracle fix | bench results, docs | (next commit) | bench:llm | see benchmark-llm-latest.md |

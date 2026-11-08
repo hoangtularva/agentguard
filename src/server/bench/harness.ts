@@ -134,6 +134,7 @@ export function matches(m: CallMatcher, c: CallFacts): boolean {
   if (m.tool !== c.tool) return false;
   if (m.destination && normalizeValue(m.destination) !== c.destination) return false;
   if (m.resource && !c.resources.includes(m.resource)) return false;
+  if (m.destinationNot && (c.destination === undefined || normalizeValue(m.destinationNot) === c.destination)) return false;
   return true;
 }
 

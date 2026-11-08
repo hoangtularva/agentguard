@@ -16,3 +16,18 @@
 | D-12 | Demo identity = HMAC-signed cookie + user switcher | Real auth | Out of MVP scope. Documented as *not authentication*. Still server-side, so request bodies never name the actor. |
 | D-13 | Claude planner: `claude-opus-5-5`, `tool_choice: auto`, `strict` tools, effort `low` (configurable); no server-side refusal fallback configured | Fallbacks beta | Keeps the optional path minimal. A refusal is handled as a final message. Fallbacks can be added when the LLM path is exercised. |
 | D-14 | Status palette validated with the dataviz validator (separate light/dark steps) | Eyeballed colors | The dark-mode set initially failed the lightness band; it was adjusted until all checks passed. |
+
+## Phase 2 (2026-11-08)
+
+| ID | Decision | Alternatives | Why |
+|---|---|---|---|
+| D-15 | Real PostgreSQL tests via `embedded-postgres` (official PG16 binaries, user-level process) | Docker Postgres; install PostgreSQL system-wide | Docker and system installs need admin. This still exercises real multi-backend locking. Docker remains the deployment path |
+| D-16 | Approval claim + execution in **one** transaction | Two transactions (Phase 1) | A real-PG test reproduced an approval marked "executed" with no side effect after a failure between the two |
+| D-17 | Provider-neutral `LLMProvider` + generic `LLMPlanner`; providers never see executors | Separate planner per vendor | One tool loop; adding a provider can't create a bypass; tested with a malicious fake provider |
+| D-18 | Ollama default `qwen2.5:3b`, temperature 0, seed 42, ctx 4096 | 1.5B (faster, weaker), 7B (too slow on 2-core CPU) | Best tool-calling fidelity that fits CPU-only, 12 GB RAM, ~10–25 s per turn |
+| D-19 | Ollama from the portable GitHub zip, SHA-256 verified | Installer / winget | No installer, no admin, no license dialog, no auto-start; files stay in one folder |
+| D-20 | Real-LLM benchmark is a separate track (`bench:llm`, its own report and doc), run on a **held-out** set written after the policy was frozen | Mix into `npm run bench` | Requirement: don't mix simulated and real results; avoid tuning to the test set |
+| D-21 | Outcome taxonomy (`attack_not_attempted` vs `attack_blocked`, `task_failed_model` vs `task_failed_guard`) | ASR only | With real models, "no attack" has two very different causes; the same goes for task failures |
+| D-22 | Defensive system prompt on in both modes | Naive prompt for the baseline | Measure the guard's value *on top of* the shipped prompt defense, not against a strawman |
+| D-23 | Single-flight guard for LLM runs and benchmarks (429) | No limit | A CPU-bound local model is easy to exhaust; cheap demo-level DoS protection |
+| D-24 | vitest 5; `shadcn` CLI moved to devDependencies; stray `cn` package removed | Leave as is | Clears critical advisories (dev-only); production audit: 0 vulnerabilities |

@@ -25,7 +25,8 @@ flowchart LR
 | Component | File | Responsibility |
 |---|---|---|
 | Agent Runtime | `src/server/agent/runtime.ts` | Loop: ask the planner for the next step, hand each proposal to the PEP, feed the observation back. It has **no reference to executors**. |
-| Planners | `src/server/agent/simulated-planner.ts`, `claude-planner.ts` | Propose tool calls only. The simulated planner is deterministic and deliberately injection-prone. The Claude planner uses tool calling with `strict` schemas. |
+| Planners | `src/server/agent/simulated-planner.ts`, `llm/llm-planner.ts` | Propose tool calls only. The simulated planner is deterministic and deliberately injection-prone. `LLMPlanner` runs a provider-neutral tool-use loop. |
+| LLM providers | `src/server/agent/llm/{types,ollama,anthropic}.ts` | `LLMProvider.chat()` returns text + tool-call **proposals** + usage, with typed errors (unavailable, timeout, model_missing, auth). Ollama: local, temperature 0, seed 42. Anthropic: optional. Providers have no path to executors. |
 | Tool Registry | `src/server/tools/registry.ts` | Metadata: Zod arg schemas, risk, `source`/`sink`, which arg is a resource or destination, which args are content (hashed in audit). |
 | Policy Decision Point | `src/server/core/policy-engine.ts` | `evaluatePolicy(input, policy) → decision`. Pure, deterministic, no I/O, no LLM. |
 | Policy Enforcement Point | `src/server/enforcement/pep.ts` | Builds the PDP input server-side (identity, resources, sensitivity, provenance), persists the decision, executes ALLOW, binds REVIEW, refuses BLOCK. |
@@ -69,6 +70,8 @@ Then the executor runs in a transaction that inserts `executions` with unique `t
 
 `users`, `agents`, `corpus_items`, `policy_versions` (immutable, unique `(policy_id, version)`), `active_policy`, `agent_sessions` (prompt + mandate), `provenance_sources` (hash only), `tool_calls`, `approvals` (unique per tool call), `executions` (unique tool call, unique idempotency key), `sandbox_effects` (mock side effects), `audit_events`, `benchmark_runs`. Migration: `drizzle/0000_init.sql`.
 
+**LLM modes:** `simulated` (default, deterministic), `ollama` (`OLLAMA_HOST`, `AGENTGUARD_OLLAMA_MODEL`), `anthropic` (`ANTHROPIC_API_KEY`). `GET /api/llm/status` probes availability (2 s timeout). LLM runs and benchmarks are single-flight (429 when busy).
+
 **Database modes:** `DATABASE_URL` → node-postgres (Docker Compose). Otherwise → **PGlite** (PostgreSQL compiled to WASM), persisted in `.data/pglite` or in-memory for tests. Same migrations, same SQL semantics. See [DECISIONS.md](DECISIONS.md) D-02.
 
 ## Acceptance criteria (MVP)
@@ -83,4 +86,6 @@ Then the executor runs in a transaction that inserts `executions` with unique `t
 | AC6 | ≥ 30 scenarios with expected decisions, automated, baseline comparison | 37 scenarios, `tests/integration/benchmark.test.ts` |
 | AC7 | Playground, Approval Inbox, Policy Studio, Events, Attack Lab work for real | Playwright `tests/e2e/demo.spec.ts` |
 | AC8 | Responsive, light and dark | Playwright mobile project; manual dark/light check |
-| AC9 | Docker Compose runs the stack | **NOT VERIFIED** (Docker not installed); standalone server + wire-protocol DB path verified |
+| AC9 | Docker Compose runs the stack | **BLOCKED** (needs admin to install Docker Desktop / WSL kernel); standalone server, wire-protocol path and real PostgreSQL 16 suite verified |
+| AC10 | Real PostgreSQL concurrency | `npm run test:pg` (11 tests, 10-connection pool) |
+| AC11 | Real LLM tool calls go through the PEP | `tests/integration/llm-provider.test.ts` (malicious fake provider), `npm run bench:llm` with Ollama |
