@@ -164,6 +164,7 @@ Priority order: M1 → M2/M3 → M4 → M5 → M6 → M7 → M8.
 | P4.7 | Examples (TS, Python, MCP) + automated proof | todo |
 | P4.8 | Packaging (tarballs, wheel, sidecar) + Apps/API keys UI + INTEGRATION_GUIDE | todo |
 | P4.9 | Security review of new surface + latency + docs | todo |
+| P4.10 | Optimisations O1–O13 (§7) | todo |
 
 ## 6. Decisions already made
 - Decision-only mode for external apps (host executes) — keeps host secrets and side effects in the host.
@@ -172,3 +173,26 @@ Priority order: M1 → M2/M3 → M4 → M5 → M6 → M7 → M8.
 - Zero-dependency SDKs (fetch / urllib) to ease adoption and reduce supply-chain risk.
 - MCP gateway is the "no code change, enforced" path; SDK is the "any framework, cooperative" path; verifier closes the bypass gap for cooperative mode.
 - Do not claim production readiness: real IdP (OIDC), mTLS, HA deployment remain out of scope.
+
+## 7. Optimisation proposals (added 2026-11-20, self-proposed) → step P4.10
+
+Each item is chosen for *measurable* benefit; performance items are done only after measuring (perf test first).
+
+| ID | Proposal | Why / expected benefit | Priority | Effort |
+|---|---|---|---|---|
+| O1 | **Tamper-evident audit log** (hash chain: each event stores `prev_hash`, `hash = sha256(prev_hash ‖ canonical(event))`; `GET /v1/audit/verify`) | Detects edits/deletions of audit rows (gap listed in threat model) | High | S |
+| O2 | **Ed25519-signed decision tokens** (public key at `/v1/.well-known/agentguard-keys`) instead of shared HMAC only | Tool backends verify without holding a secret; key rotation via `kid` | High | S |
+| O3 | **Per-API-key rate limiting** (token bucket, in-process) + 429 with `Retry-After` | DoS / runaway-agent protection beyond single-flight | High | S |
+| O4 | **Compiled-policy cache** keyed by `(policyId, version, documentHash)`; compiled ToolSpec cache per app | Avoid re-parsing Zod/Ajv on every call (measure before/after with `/v1/check` latency) | Medium | S |
+| O5 | **DB indexes** for viewer-scoped reads (`tool_calls(user_id, created_at)`, `audit_events(session_id, created_at)`, `approvals(requested_for, status)`) — only if the perf test shows need | Keep dashboard p95 low at 50k+ events | Medium | S |
+| O6 | **Supply-chain CI**: `npm audit --omit=dev` gate, secret scanning (gitleaks action), CodeQL for JS/TS, Dependabot | Public repo hygiene; catches leaked secrets in PRs | High | S |
+| O7 | **Delegation-chain provenance** for multi-agent: `/v1/check` accepts `parentCallId` / `delegatedFrom`; content produced by a sub-agent inherits the *least* trust of its inputs | Stops "laundering" untrusted content through agent hand-offs | High | M |
+| O8 | **Per-agent budgets & kill switch**: max sink calls per session, max data sensitivity per agent, admin "freeze agent" → every check BLOCK | Containment for a compromised/looping agent | Medium | S |
+| O9 | **Policy-as-code**: import/export YAML, policy templates (e.g. "no external email of confidential data", "exports need approval"), `agentguard policy test` CLI with fixtures | Easier adoption & review in PRs | Medium | M |
+| O10 | **One-command demo**: `docker compose -f docker-compose.demo.yml up` (app + Postgres + optional Ollama profile) and a GitHub Codespaces/devcontainer config | Lower friction for people who fork | Medium | S |
+| O11 | **README demo media**: Playwright-recorded walkthrough video (`docs/media/demo.webm`) + full screenshot set light/dark/mobile | Open-source presentation | Medium | S |
+| O12 | **More models in the real-LLM track** (e.g. `llama3.2:3b`, `qwen2.5:1.5b`) on the frozen holdout — only within RAM/disk budget (≤ 2 GB each) | Shows results are not specific to one model | Low | M (CPU time) |
+| O13 | **Approval notifications via webhook** (outbound URL configured per app, HMAC-signed payload) — design + implementation, *disabled by default*; never sends without explicit config | Humans see REVIEW items without polling the UI | Low | S |
+
+Order inside P4.10: O6 → O1 → O2 → O3 → O7 → O8 → O4/O5 (after measuring) → O10 → O11 → O9 → O13 → O12.
+Update the §5 table: P4.10 = "Optimisations O1–O13".
