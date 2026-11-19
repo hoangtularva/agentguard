@@ -47,3 +47,5 @@ bench-results/*.json
 playwright-report/
 test-results/
 !.env.example
+packages/*/dist/
+dist-packages/

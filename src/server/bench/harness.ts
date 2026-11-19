@@ -124,8 +124,8 @@ const USER = "u_alice";
 
 export function factsOf(tool: string, args: unknown): CallFacts {
   const def = getTool(tool);
-  const parsed = def?.argsSchema.safeParse(args);
-  if (!def || !parsed?.success) return { tool, resources: [] };
+  const parsed = def?.validate(args);
+  if (!def || !parsed?.ok) return { tool, resources: [] };
   const dest = destinationOf(def, parsed.data);
   return { tool, resources: resourcesOf(def, parsed.data), destination: dest ? normalizeValue(dest) : undefined };
 }

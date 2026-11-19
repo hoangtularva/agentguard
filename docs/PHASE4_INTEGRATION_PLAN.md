@@ -155,7 +155,7 @@ Priority order: M1 → M2/M3 → M4 → M5 → M6 → M7 → M8.
 | Step | Scope | Status |
 |---|---|---|
 | P3-close | Finish open Phase 3 items (§0) | in progress (HOLDOUT running) |
-| P4.1 | Core package + data-driven ToolSpec + Ajv | todo |
+| P4.1 | Core package + data-driven ToolSpec + Ajv | **done** — packages/core (esbuild ESM + d.ts), shims in src/server/core, demo tools as ToolSpecs, 6 new tests, vitest 75/75, bench 37/37 |
 | P4.2 | Multi-tenant schema + migration + seed | todo |
 | P4.3 | `/v1` API + API keys + decision tokens + OpenAPI | todo |
 | P4.4 | TS SDK + Python SDK | todo |
