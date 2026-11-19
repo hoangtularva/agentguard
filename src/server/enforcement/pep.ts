@@ -210,8 +210,8 @@ export class EnforcementPoint {
         },
       };
     }
-    const parsed = tool.argsSchema.safeParse(call.args);
-    if (!parsed.success) {
+    const parsed = tool.validate(call.args);
+    if (!parsed.ok) {
       const snapshot = { dataSensitivity: state.readSensitivity, sourcesInContext, signals };
       return {
         snapshot,
@@ -219,11 +219,7 @@ export class EnforcementPoint {
           ...base,
           tool: { name: tool.name, risk: tool.risk, kind: tool.kind, known: true },
           argsValid: false,
-          argsErrors: parsed.error.issues.map((i) =>
-            i.code === "unrecognized_keys"
-              ? `unknown argument(s) ${(i as { keys?: string[] }).keys?.join(", ")}; ${tool.name} accepts only: ${Object.keys((tool.jsonSchema as { properties?: object }).properties ?? {}).join(", ")}`
-              : `${i.path.join(".") || "args"}: ${i.message}`,
-          ),
+          argsErrors: parsed.errors,
           resources: [],
           dataSensitivity: state.readSensitivity,
         },

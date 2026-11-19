@@ -36,8 +36,8 @@ export async function runUnguarded(params: {
     if (step.kind === "final") break;
     const tool = getTool(step.tool);
     const exec = getExecutor(step.tool);
-    const parsed = tool?.argsSchema.safeParse(step.args);
-    if (!tool || !exec || !parsed?.success) {
+    const parsed = tool?.validate(step.args);
+    if (!tool || !exec || !parsed?.ok) {
       calls.push({ tool: step.tool, args: step.args, executed: false, resources: [], injected: step.injected });
       params.planner.observe(step.stepId, { status: "failed", text: "Invalid tool call." });
       continue;
