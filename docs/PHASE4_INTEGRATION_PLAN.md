@@ -156,6 +156,7 @@ Priority order: M1 → M2/M3 → M4 → M5 → M6 → M7 → M8.
 |---|---|---|
 | P3-close | Finish open Phase 3 items (§0) | in progress (HOLDOUT running) |
 | P4.1 | Core package + data-driven ToolSpec + Ajv | **done** — packages/core (esbuild ESM + d.ts), shims in src/server/core, demo tools as ToolSpecs, 6 new tests, vitest 75/75, bench 37/37 |
+| P4.1b | Refactor to Ports & Adapters (§8): split PEP into use cases, ports, Drizzle adapters; thin routes; behaviour unchanged | todo |
 | P4.2 | Multi-tenant schema + migration + seed | todo |
 | P4.3 | `/v1` API + API keys + decision tokens + OpenAPI | todo |
 | P4.4 | TS SDK + Python SDK | todo |
@@ -196,3 +197,22 @@ Each item is chosen for *measurable* benefit; performance items are done only af
 
 Order inside P4.10: O6 → O1 → O2 → O3 → O7 → O8 → O4/O5 (after measuring) → O10 → O11 → O9 → O13 → O12.
 Update the §5 table: P4.10 = "Optimisations O1–O13".
+
+## 8. Engineering principles (user requirement 2026-11-20: "code gọn, chuẩn system design pattern")
+
+Applies to all Phase 4 code and to the refactor step P4.1b.
+
+- **Hexagonal / Ports & Adapters.** Domain core (`packages/core`) is pure, with no I/O. The application layer (`src/server/app/*` services) orchestrates use cases through **ports** (interfaces):
+  `PolicyRepository`, `SessionRepository`, `ToolCallRepository`, `ApprovalRepository`, `AuditSink`, `ProvenanceStore`, `ToolCatalog`, `ResourceResolver`, `Clock`, `IdGenerator`, `Executor` (optional).
+  Adapters implement ports: Drizzle/Postgres, in-memory (tests), HTTP (SDK), MCP.
+- **Thin controllers.** Next.js route handlers only: authenticate → validate (Zod) → call one use case → map result to HTTP. No business logic in routes or React components.
+- **Single responsibility, small files** (target < 250 lines per module; one exported use case per file in `app/`).
+- **Dependency inversion & composition root.** One `createContainer(env)` wires adapters to services; tests build the same container with in-memory adapters.
+- **Use-case naming:** `checkToolCall`, `startSession`, `registerSource`, `decideApproval`, `consumeApproval`, `reportResult`, `issueApiKey`, `registerTool`.
+- **Errors as values** at boundaries (`Result<T, DomainError>`), mapped once to HTTP status codes.
+- **No duplication:** demo runtime and external API go through the *same* use cases. The demo is just another client.
+- **Patterns used deliberately:** Strategy (planners, LLM providers, fail modes), Adapter (storage, MCP), Decorator (SDK `guard()`), Chain of Responsibility (PDP invariants → rules → default deny), Repository, Unit of Work (DB transaction per approval execution), Observer (audit sink / webhooks).
+- **Definition of done** per step: lint + typecheck + tests green; no file > 300 lines without justification; public API documented (TSDoc / OpenAPI).
+
+### P4.1b Refactor (before P4.2)
+Split `src/server/enforcement/pep.ts` (~600 lines) into use cases + ports + Drizzle adapters. Make route handlers thin, and keep behaviour byte-identical: the full test suite + deterministic bench must stay green before/after.
