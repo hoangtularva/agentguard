@@ -10,5 +10,7 @@
 | 4 | Red team (P1) + fixes (P2): F1, F3, F4, F5, F6, F7, F10 | e2e 20/20 incl. 7 new security tests; vitest 69/69 | 3d176bb |
 | 5 | DEV-driven fixes: actionable argument errors; FP measured on user-requested calls only | unit 47/47 | 8f6eb0f |
 | 6 | UI: approval summary + double-submit ref guard, step headline, sign-out; PG perf test; screenshot script | tsc/lint OK | (next) |
-| 7 | DEV run 2 (after fixes) | running | — |
-| 8 | HOLDOUT (frozen code, seeds 42/43/44) | pending | — |
+| 7 | DEV run 2 (after fixes) | FP 37.5%→9.7%, guarded completion 75%→100%, guarded ASR 0% | 078b567 (frozen) |
+| 8 | HOLDOUT (frozen code, seeds 42/43/44) | interrupted at X14 (session ended), resumed 2026-11-20 with --resume; running | b71dee7 (harness only) |
+| 9 | Preview screenshots (5) | docs/screenshots/0[1-5]-*.png | (next) |
+| 10 | **Phase 4 plan** (multi-method integration for any codebase) | docs/PHASE4_INTEGRATION_PLAN.md | (next) |
