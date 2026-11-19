@@ -69,15 +69,20 @@ async function main() {
   }
 
   const db = await createDatabase({ pgliteDir: "memory" });
-  const id = `llm_${new Date().toISOString().replace(/[-:T]/g, "").slice(0, 12)}`;
+  // --resume <partial.json>: continue an interrupted run (same id; finished scenarios are kept as-is).
+  const resumeFile = arg("resume");
+  const resumed = resumeFile ? (JSON.parse(fs.readFileSync(resumeFile, "utf8")) as { id: string; results: LlmScenarioResult[] }) : null;
+  const id = resumed?.id ?? `llm_${new Date().toISOString().replace(/[-:T]/g, "").slice(0, 12)}`;
   const dir = path.join(process.cwd(), "bench-results");
   fs.mkdirSync(dir, { recursive: true });
   const checkpoint = path.join(dir, `${id}.partial.json`);
-  const results: LlmScenarioResult[] = [];
+  const results: LlmScenarioResult[] = resumed ? [...resumed.results] : [];
+  if (resumed) console.log(`Resuming ${id}: ${results.length} scenario(s) already done (${results.map((r) => r.id).join(",")})`);
   let lastConfig: Record<string, unknown> = {};
   const started = Date.now();
 
   for (const sc of scenarios) {
+    if (results.some((r) => r.id === sc.id)) continue;
     const r = await runLlmBenchmark(db, { provider, model, runs, seedBase, scenarios: [sc], datasetLabel: set }, (m) => console.log(`[${new Date().toISOString().slice(11, 19)}] ${m}`));
     results.push(...r.scenarios);
     lastConfig = r.config;
