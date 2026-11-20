@@ -2,6 +2,7 @@ import { spawn, spawnSync } from "node:child_process";
 import path from "node:path";
 import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { deriveEd25519KeyPair, signDecisionTokenEd25519 } from "../../packages/core/src/decision-token";
 import { hashCanonical } from "@/server/core/canonical";
 import { detectInjectionSignals, extractFingerprints } from "@/server/core/provenance";
 import { getDb } from "@/server/db/client";
@@ -54,6 +55,13 @@ beforeAll(async () => {
     AG_FIXTURES: JSON.stringify({
       texts: TEXTS.map((text) => ({ text, fingerprints: extractFingerprints(text), signals: detectInjectionSignals("email", text) })),
       hashes: VALUES.map((value) => ({ value, hash: hashCanonical(value) })),
+      ed25519: (() => {
+        const kp = deriveEd25519KeyPair("fixture-secret", "pyapp", 1);
+        const args = { folder: "inbox" };
+        const now = Math.floor(Date.now() / 1000);
+        const token = signDecisionTokenEd25519(kp.privateKey, { jti: "dt_fx", app: "pyapp", agent: "pyapp.r", call: "tc_fx", tool: "read_inbox", ah: hashCanonical(args), iat: now, exp: now + 600 });
+        return { token, publicKey: kp.publicKey, args };
+      })(),
     }),
   });
 });
@@ -80,7 +88,7 @@ describe.skipIf(!PY)("Python SDK", () => {
     }
     const code = await done;
     if (code !== 0) console.error(output);
-    expect(output).toMatch(/Ran 4 tests/);
+    expect(output).toMatch(/Ran 5 tests/);
     expect(output).not.toMatch(/skipped/);
     expect(code).toBe(0);
   }, 120_000);

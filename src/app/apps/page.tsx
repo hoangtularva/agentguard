@@ -1,6 +1,7 @@
 import { Plug } from "lucide-react";
 import { EmptyState, PageHeader, Panel } from "@/components/primitives";
 import { getCurrentUser } from "@/server/app-context";
+import { tokenAlgOf } from "@/server/integration/apps";
 import { listApps } from "@/server/queries";
 import { AppCard, type AppView, CreateApp } from "./apps-manager";
 
@@ -29,6 +30,7 @@ export default async function AppsPage() {
     id: a.id,
     name: a.name,
     defaultPolicyId: a.defaultPolicyId,
+    tokenAlg: tokenAlgOf(a),
     calls: Number(a.calls),
     keys: a.keys.map((k) => ({
       ...k,

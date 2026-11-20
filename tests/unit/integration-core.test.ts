@@ -76,3 +76,23 @@ describe("integration helpers", () => {
     expect(file).toEqual(JSON.parse(JSON.stringify(openApiDocument())));
   });
 });
+
+describe("Ed25519 decision tokens (agt2)", () => {
+  it("verify with the public key only; reject forgery, the HMAC key, and other apps' keys", async () => {
+    const { deriveEd25519KeyPair, signDecisionTokenEd25519 } = await import("../../packages/core/src/decision-token");
+    const acme = deriveEd25519KeyPair("server-secret-for-tests", "acme", 1);
+    const other = deriveEd25519KeyPair("server-secret-for-tests", "globex", 1);
+    expect(deriveEd25519KeyPair("server-secret-for-tests", "acme", 1).publicKey).toBe(acme.publicKey); // deterministic
+    const t = signDecisionTokenEd25519(acme.privateKey, payload);
+    expect(t.startsWith("agt2.")).toBe(true);
+    const v = (o: Partial<Parameters<typeof verifyDecisionToken>[1]>, tok = t) =>
+      verifyDecisionToken(tok, { tool: "send_email", args, appId: "acme", nowSeconds: 1030, ...o });
+    expect(v({ publicKey: acme.publicKey }).ok).toBe(true);
+    expect(v({ publicKey: other.publicKey })).toMatchObject({ code: "BAD_SIGNATURE" });
+    expect(v({ key })).toMatchObject({ code: "BAD_SIGNATURE" });
+    expect(v({ publicKey: acme.publicKey, args: { ...args, to: "eve@evil.test" } })).toMatchObject({ code: "ARGS_MISMATCH" });
+    const [p, , sig] = t.split(".");
+    const forged = Buffer.from(JSON.stringify({ ...payload, tool: "export_data" })).toString("base64url");
+    expect(v({ publicKey: acme.publicKey, tool: "export_data" }, `${p}.${forged}.${sig}`)).toMatchObject({ code: "BAD_SIGNATURE" });
+  });
+});

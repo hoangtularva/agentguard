@@ -105,6 +105,21 @@ class ConformanceTest(unittest.TestCase):
         for case in fx["hashes"]:
             self.assertEqual(hash_canonical(case["value"]), case["hash"], case["value"])
 
+    @unittest.skipUnless(os.environ.get("AG_FIXTURES"), "needs fixtures from the TS harness")
+    def test_ed25519_token_from_typescript(self):
+        fx = json.loads(os.environ["AG_FIXTURES"])["ed25519"]
+        try:
+            import cryptography  # noqa: F401
+        except ImportError:
+            with self.assertRaises(TokenError) as e:
+                verify_decision_token(fx["token"], public_key=fx["publicKey"], tool="read_inbox", args=fx["args"])
+            self.assertEqual(e.exception.code, "UNSUPPORTED")  # fails closed without the optional dependency
+            return
+        payload = verify_decision_token(fx["token"], public_key=fx["publicKey"], tool="read_inbox", args=fx["args"], app_id="pyapp")
+        self.assertEqual(payload["call"], "tc_fx")
+        with self.assertRaises(TokenError):
+            verify_decision_token(fx["token"], public_key=fx["publicKey"], tool="read_inbox", args={"folder": "secrets"})
+
 
 if __name__ == "__main__":
     unittest.main()

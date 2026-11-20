@@ -16,6 +16,8 @@ export interface VerifierOptions {
    * online mode when the tool is replicated.
    */
   key?: string;
+  /** Offline mode for Ed25519 (agt2) tokens: the app's public key from GET /v1/keys/:appId. No secret needed. */
+  publicKey?: string;
   appId?: string;
   /** Online mode: AgentGuard base URL + an API key with scope `verify` (server-side single use). */
   server?: { baseUrl: string; apiKey: string; timeoutMs?: number; fetch?: typeof fetch };
@@ -25,14 +27,14 @@ export class DecisionVerifier {
   private readonly seen = new Map<string, number>();
 
   constructor(private readonly o: VerifierOptions) {
-    if (!o.key && !o.server) throw new Error("DecisionVerifier needs `key` (offline) or `server` (online).");
+    if (!o.key && !o.publicKey && !o.server) throw new Error("DecisionVerifier needs `publicKey` or `key` (offline), or `server` (online).");
   }
 
   async verify(token: string | null | undefined, tool: string, args: Record<string, unknown>): Promise<VerifyResult> {
     if (!token) return { valid: false, code: "MISSING", message: "No AgentGuard decision token." };
     if (this.o.server) return this.online(token, tool, args);
     const now = Math.floor(Date.now() / 1000);
-    const r = verifyDecisionToken(token, { key: this.o.key!, tool, args, appId: this.o.appId, nowSeconds: now });
+    const r = verifyDecisionToken(token, { key: this.o.key, publicKey: this.o.publicKey, tool, args, appId: this.o.appId, nowSeconds: now });
     if (!r.ok) return { valid: false, code: r.code, message: r.message };
     for (const [jti, exp] of this.seen) if (exp < now) this.seen.delete(jti);
     if (this.seen.has(r.payload.jti)) return { valid: false, code: "REPLAYED", message: "Token was already used." };

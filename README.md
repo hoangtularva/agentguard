@@ -163,7 +163,7 @@ AgentGuard was red-teamed against itself; findings and fixes are in [docs/PHASE3
 ## 🗺️ Roadmap
 
 - External integration: `/v1` API, TS/Python SDKs, MCP gateway, tool-side verifier
-- Ed25519 decision tokens, external anchoring of the audit chain head
+- External anchoring of the audit chain head
 - Delegation-chain provenance for multi-agent hand-offs, per-agent kill switch
 - Policy-as-code (YAML, templates, CI tests), more models in the real-LLM track, AgentDojo port
 
