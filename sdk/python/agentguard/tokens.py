@@ -57,3 +57,40 @@ def verify_decision_token(token: str, *, key: str, tool: str, args: dict, app_id
     if payload.get("ah") != hash_canonical(args):
         raise TokenError("ARGS_MISMATCH", "Arguments differ from the allowed call.")
     return payload
+
+
+class TokenVerifier:
+    """Offline verifier with per-process single use (cache of seen token ids until expiry).
+
+    Use in the service that performs the side effect; for replicated tools prefer
+    `AgentGuard.verify_token` (server-side single use).
+    """
+
+    def __init__(self, key: str, app_id: str | None = None):
+        self.key, self.app_id, self._seen = key, app_id, {}
+
+    def verify(self, token: str | None, tool: str, args: dict) -> dict:
+        if not token:
+            raise TokenError("MISSING", "No AgentGuard decision token.")
+        now = time.time()
+        payload = verify_decision_token(token, key=self.key, tool=tool, args=args, app_id=self.app_id, now=now)
+        self._seen = {j: e for j, e in self._seen.items() if e >= now}
+        if payload["jti"] in self._seen:
+            raise TokenError("REPLAYED", "Token was already used.")
+        self._seen[payload["jti"]] = payload["exp"]
+        return payload
+
+    def protect(self, tool: str):
+        """Decorator for tool implementations called as fn(agentguard_token=..., **args)."""
+
+        def deco(fn):
+            import functools
+
+            @functools.wraps(fn)
+            def wrapper(*, agentguard_token: str | None = None, **args):
+                self.verify(agentguard_token, tool, args)
+                return fn(**args)
+
+            return wrapper
+
+        return deco

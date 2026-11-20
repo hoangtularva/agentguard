@@ -12,7 +12,7 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from agentguard import (  # noqa: E402
-    AgentGuard, AgentGuardBlocked, ApprovalRequired, TokenError, detect_injection_signals,
+    AgentGuard, AgentGuardBlocked, ApprovalRequired, TokenError, TokenVerifier, detect_injection_signals,
     extract_fingerprints, guarded, verify_decision_token,
 )
 from agentguard.tokens import hash_canonical  # noqa: E402
@@ -73,6 +73,14 @@ class SdkTest(unittest.TestCase):
         with self.assertRaises(TokenError) as e:
             verify_decision_token(seen["token"], key=key, tool="read_inbox", args={"folder": "secrets"})
         self.assertEqual(e.exception.code, "ARGS_MISMATCH")
+        verifier = TokenVerifier(key, app_id="pyapp")
+        tool = verifier.protect("read_inbox")(lambda folder: f"read {folder}")
+        self.assertEqual(tool(agentguard_token=seen["token"], folder="inbox"), "read inbox")
+        with self.assertRaises(TokenError) as replay:
+            tool(agentguard_token=seen["token"], folder="inbox")
+        self.assertEqual(replay.exception.code, "REPLAYED")
+        with self.assertRaises(TokenError):
+            tool(folder="inbox")  # no token: the tool refuses to act
 
     def test_fail_closed(self):
         dead = AgentGuard("http://127.0.0.1:9", "agk_unreachable_unreachable_00", timeout=0.3)

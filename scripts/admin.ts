@@ -4,13 +4,15 @@
  *   npm run admin -- create-app <id> "<name>"
  *   npm run admin -- create-key <appId> <name> [--scopes check,verify,admin] [--agent <agentRef>]
  *   npm run admin -- revoke-key <appId> <keyId>
+ *   npm run admin -- token-key <appId>     (offline verification key for tool services; keep secret)
  *   npm run admin -- list
  *
  * With PGlite, stop `npm run dev` first (the embedded database allows one process).
  */
 import { createDatabase } from "@/server/db/client";
 import * as s from "@/server/db/schema";
-import { API_SCOPES, type ApiScope, createApiKey, createApp, revokeApiKey } from "@/server/integration/apps";
+import { eq } from "drizzle-orm";
+import { API_SCOPES, type ApiScope, createApiKey, createApp, revokeApiKey, tokenKeyFor } from "@/server/integration/apps";
 
 const [cmd, ...rest] = process.argv.slice(2);
 const flag = (name: string) => {
@@ -42,6 +44,14 @@ async function main() {
       console.log((await revokeApiKey(db, appId, keyId, ACTOR)) ? "Revoked." : "No active key with that id in this app.");
       break;
     }
+    case "token-key": {
+      const [app] = await db.select().from(s.apps).where(eq(s.apps.id, rest[0] ?? ""));
+      if (!app || app.id === "demo") throw new Error("Unknown app.");
+      if (!process.env.AUTH_SECRET) throw new Error("Set AUTH_SECRET to the server's value first (keys are derived from it).");
+      console.log(`Decision-token key for "${app.id}" (v${app.tokenKeyVersion}); derived from AUTH_SECRET, changes if it changes:
+${tokenKeyFor(app)}`);
+      break;
+    }
     case "list": {
       const apps = await db.select().from(s.apps);
       const keys = await db.select({ id: s.apiKeys.id, appId: s.apiKeys.appId, name: s.apiKeys.name, prefix: s.apiKeys.prefix, scopes: s.apiKeys.scopes, revokedAt: s.apiKeys.revokedAt }).from(s.apiKeys);
@@ -52,7 +62,7 @@ async function main() {
       break;
     }
     default:
-      console.log("Commands: create-app <id> <name> | create-key <appId> <name> [--scopes a,b] [--agent ref] | revoke-key <appId> <keyId> | list");
+      console.log("Commands: create-app <id> <name> | create-key <appId> <name> [--scopes a,b] [--agent ref] | revoke-key <appId> <keyId> | token-key <appId> | list");
   }
   process.exit(0);
 }

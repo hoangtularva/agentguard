@@ -42,7 +42,15 @@ try {
 
 **Privacy mode (default on):** `session.addSource()` and tool outputs send only the emails/URLs found in the content plus locally detected injection signals, not the content itself. Tool **arguments** are sent as-is (they are what the policy decides on); the server stores content arguments only as hashes.
 
-**Tool-side verification:** pass `ctx.decisionToken` to your tool backend and verify it there, either with `POST /v1/tokens/verify` (key with scope `verify`; also marks the token used) or offline with `verifyDecisionToken(token, { key, tool, args })`. A call that bypassed the guard, or whose arguments changed after the decision, is then refused by the tool itself.
+**Tool-side verification:** pass `ctx.decisionToken` to the service that performs the side effect and verify it there. Then a call that bypassed the guard, or whose arguments changed after the decision, is refused by the tool itself:
+
+```ts
+import { DecisionVerifier } from "@agentguard/sdk";
+
+// online: server-side single use (key scope "verify"); offline: { key, appId } from `npm run admin -- token-key <app>`
+const verifier = new DecisionVerifier({ server: { baseUrl, apiKey: process.env.AGENTGUARD_VERIFY_KEY! } });
+export const POST = verifier.protect("send_email", async (req, args) => sendMail(args)); // 403 without a matching token
+```
 
 ## Setup
 
