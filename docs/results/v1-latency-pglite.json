@@ -1,0 +1,37 @@
+{
+  "mode": "pglite",
+  "machine": {
+    "cpu": "Intel(R) Core(TM) i5-7200U CPU @ 2.50GHz",
+    "cores": 4,
+    "ramGb": 12,
+    "node": "v22.14.0",
+    "platform": "win32"
+  },
+  "measuredAt": "2026-11-20T16:21:31.085Z",
+  "note": "Client-observed HTTP latency on localhost, sequential requests, one session with 2 sources and a growing call history.",
+  "latencyMs": {
+    "ALLOW (read, issues token)": {
+      "n": 300,
+      "p50": 28.79,
+      "p95": 44.12,
+      "p99": 65.85
+    },
+    "BLOCK (injected destination)": {
+      "n": 300,
+      "p50": 23.17,
+      "p95": 39.73,
+      "p99": 63.87
+    },
+    "REVIEW (creates approval)": {
+      "n": 300,
+      "p50": 22.17,
+      "p95": 33.29,
+      "p99": 52.26
+    }
+  },
+  "throughputRps": {
+    "concurrency": 8,
+    "requests": 1200,
+    "value": 39
+  }
+}

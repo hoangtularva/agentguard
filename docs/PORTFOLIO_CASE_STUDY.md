@@ -97,6 +97,12 @@ Attack success 93.3% → **0.0%** (13.3% with a rubber-stamp reviewer), FP 0/99,
 
 **What these numbers do not say:** that AgentGuard is secure in general. The datasets are self-authored, the model is small, and the reviewer is idealized; see §9 and the threat model.
 
+### Integration (Phase 4)
+- Agents in **any codebase** can be guarded: `/v1` decision API, zero-dependency TypeScript and Python SDKs, an MCP gateway (no code changes) and tool-side token verifiers.
+- The same multi-agent injection story runs through all three integration paths in CI ([examples](../examples/README.md)): the read runs, the injected send is **blocked**, the legitimate send waits for a human, nothing is sent. Verified once more on the Docker production stack through the UI (create app → key → approve → single consume).
+- `/v1/check` latency on PostgreSQL 16, laptop CPU: p50 13.5–20.5 ms, p95 ≤ 31 ms ([benchmark-v1.md](benchmark-v1.md)), against seconds per LLM turn.
+- 12 new red-team regressions (cross-tenant access, token replay/forgery/arg swap, forged trusted provenance, key echo, rate limit, concurrent consume on real PG).
+
 ## 9. Trade-offs
 
 | Choice | Benefit | Cost |
@@ -114,4 +120,4 @@ Attack success 93.3% → **0.0%** (13.3% with a rubber-stamp reviewer), FP 0/99,
 2. Executor isolation service accepting only PEP-signed, single-use execution tokens.
 3. OIDC + agent workload identity; separation of duties for high-risk approvals.
 4. Hash-chained audit; nonce-based CSP; per-user rate limits.
-5. MCP proxy mode so existing agents can be guarded without code changes; optional OPA/Cedar backend.
+5. ~~MCP proxy mode~~ (done in Phase 4); optional OPA/Cedar backend; Ed25519 decision tokens; tamper-evident audit.

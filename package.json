@@ -18,6 +18,7 @@
     "admin": "tsx scripts/admin.ts",
     "examples:setup": "tsx examples/setup.ts",
     "package": "node scripts/package.mjs",
+    "bench:v1": "tsx --conditions=react-server scripts/bench-v1.ts",
     "bench:llm": "tsx scripts/bench-llm.ts",
     "test:pg": "vitest run --config vitest.pg.config.ts"
   },

@@ -111,3 +111,22 @@ Full details, reproductions and test names: [PHASE3_FINDINGS.md](PHASE3_FINDINGS
 | T33 | Members triggering CPU-heavy benchmarks | **Fixed (F7)**: approver/admin only + single-flight |
 | T34 | Model-invented destinations (hallucination, not attack) | Observed with qwen2.5:3b in both DEV runs; unguarded 3 executed, guarded 0 (default deny on model-generated provenance) |
 | T35 | Argument corruption by small models (dropped prefixes, extra keys, garbled tokens) | Strict schemas reject; error messages now state the expected format so the model can self-correct (DEV FP 37.5% → 9.7%) |
+
+## Phase 4 additions (external integration surface, 2026-11-20)
+
+New assets: API keys, decision tokens, per-app tool specs, external sessions' provenance. New actors: integrated app backends (hold `check`/`admin` keys), tool services (hold `verify` keys or the offline token key), MCP clients behind the gateway. Red-team regressions: `tests/integration/v1-security.test.ts`, `v1-api.test.ts`, `sdk-*.test.ts`, `mcp-gateway.test.ts`, `examples.test.ts`.
+
+| ID | Threat | Status |
+|---|---|---|
+| T36 | Agent runtime bypasses the SDK and calls the tool directly | **Mitigated** where the tool verifies decision tokens (`DecisionVerifier` / `TokenVerifier`); MCP gateway sits in the path. Residual: unverified tools are only cooperatively guarded |
+| T37 | Arguments swapped after an ALLOW / approval | **Mitigated**: token binds the canonical args hash; approvals bind args + policy version; tests for ARGS_MISMATCH |
+| T38 | Decision-token replay / forgery / cross-app use | **Mitigated**: HMAC with per-app derived key, 60 s expiry, server `consumed_at` (concurrent verification: exactly one success on PG16), WRONG_APP check |
+| T39 | Cross-tenant access with another app's key | **Mitigated**: every read/write scoped by `app_id`; foreign sessions, calls, approvals → 404 (no existence oracle); the demo UI's execute path cannot run external approvals |
+| T40 | Client forges trusted provenance (registers content as `user_prompt`) | **Mitigated**: `/v1/.../sources` accepts only untrusted types (400 otherwise); client-sent signals can only escalate |
+| T41 | API key theft | **Reduced**: SHA-256 at rest, shown once, scopes, agent binding, revocation (UI/CLI), per-key rate limit (429 + Retry-After), never echoed in errors. Residual: a stolen `check` key can open sessions with any prompt (see T42) |
+| T42 | **Compromised app backend lies about the user's prompt/mandate** | **Residual by design**: the holder of a `check` key is trusted to report the user's request. Open sessions from your backend, never from model output; bind keys to agents; keep the model away from the key |
+| T43 | Approval double-consume under concurrency | **Mitigated**: row lock + conditional claim; 10 concurrent consumes → 1 token (real PG16 test) |
+| T44 | AgentGuard unavailable → silent fail-open | **Mitigated**: SDKs/gateway fail closed; `allow-reads` opt-in applies to read-only guards only |
+| T45 | Third-party content leaves the host app | **Reduced**: privacy mode sends email/URL fingerprints + local signals; content arguments hashed in audit. Residual: tool arguments are sent in full |
+| T46 | Malicious MCP config (SSRF via upstream URL) | **Out of API reach**: upstream is set only in the operator's config file; the model can't change it or the mandate |
+| T47 | Sub-agent laundering of untrusted content | **Reduced**: participant agents share the session's provenance; non-participants fail identity checks. Residual: content routed outside AgentGuard and re-entered unregistered |
