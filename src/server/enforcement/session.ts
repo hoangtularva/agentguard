@@ -10,6 +10,8 @@ import type { EnforcementDeps } from "./ports";
 import type { ExecResult, ProposedToolCall, SessionState } from "./types";
 
 export interface StartSessionParams {
+  /** Tenant; defaults to the built-in demo app. The agent must belong to it. */
+  appId?: string;
   userId: string;
   agentId: string;
   prompt: string;
@@ -26,10 +28,11 @@ export interface StartSessionParams {
  */
 export async function startSession(deps: EnforcementDeps, params: StartSessionParams): Promise<SessionState> {
   const { db } = deps;
+  const appId = params.appId ?? "demo";
   const [user] = await db.select().from(s.users).where(eq(s.users.id, params.userId)).limit(1);
   if (!user) throw new Error("Unknown user");
   const [agent] = await db.select().from(s.agents).where(eq(s.agents.id, params.agentId)).limit(1);
-  if (!agent || !agent.active) throw new Error("Unknown or inactive agent");
+  if (!agent || !agent.active || agent.appId !== appId) throw new Error("Unknown or inactive agent");
 
   const destinations = [
     ...new Set([...(params.mandate.destinations ?? []).map(normalizeValue), ...extractDestinations(params.prompt)]),
@@ -43,6 +46,7 @@ export async function startSession(deps: EnforcementDeps, params: StartSessionPa
   const id = newId("ses");
   await db.insert(s.agentSessions).values({
     id,
+    appId,
     userId: user.id,
     agentId: agent.id,
     userPrompt: params.prompt,
@@ -53,6 +57,7 @@ export async function startSession(deps: EnforcementDeps, params: StartSessionPa
   });
   const state: SessionState = {
     id,
+    appId,
     userId: user.id,
     agentId: agent.id,
     policyId: params.policyId,
@@ -63,6 +68,7 @@ export async function startSession(deps: EnforcementDeps, params: StartSessionPa
   await addSource(db, state, makeSource({ type: "user_prompt", label: "User request", content: params.prompt }));
   await writeAudit(db, {
     type: "session.started",
+    appId,
     sessionId: id,
     actorId: user.id,
     payload: { agentId: agent.id, planner: params.planner, mandate },
@@ -119,7 +125,7 @@ export async function verifyIdentity(db: DB, state: SessionState, call: Proposed
   const [agent] = row ? await db.select().from(s.agents).where(eq(s.agents.id, row.agentId)).limit(1) : [];
   return {
     userOk: !!row && !!user && row.userId === state.userId,
-    agentOk: !!row && !!agent && agent.active && row.agentId === call.agentId && agent.allowedTools.includes(call.tool),
+    agentOk: !!row && !!agent && agent.active && row.appId === state.appId && agent.appId === row.appId && row.agentId === call.agentId && agent.allowedTools.includes(call.tool),
     userRole: (user?.role ?? "member") as UserRole,
   };
 }

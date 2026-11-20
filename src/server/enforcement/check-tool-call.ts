@@ -60,6 +60,7 @@ export async function checkToolCall(deps: EnforcementDeps, state: SessionState, 
 
   await db.insert(s.toolCalls).values({
     id: toolCallId,
+    appId: state.appId,
     sessionId: state.id,
     userId: state.userId,
     agentId: call.agentId,
@@ -81,6 +82,7 @@ export async function checkToolCall(deps: EnforcementDeps, state: SessionState, 
   });
   await writeAudit(db, {
     type: "tool_call.evaluated",
+    appId: state.appId,
     severity: SEVERITY[decision.decision],
     sessionId: state.id,
     toolCallId,
@@ -103,6 +105,7 @@ export async function checkToolCall(deps: EnforcementDeps, state: SessionState, 
 
   if (decision.decision === "ALLOW" && args && tool) {
     const exec = await runExecution(deps, {
+      appId: state.appId,
       sessionId: state.id,
       toolCallId,
       tool: call.tool,
@@ -137,6 +140,7 @@ async function requestApproval(
   const approvalId = newId("apr");
   await db.insert(s.approvals).values({
     id: approvalId,
+    appId: state.appId,
     toolCallId,
     sessionId: state.id,
     requestedFor: state.userId,
@@ -157,6 +161,7 @@ async function requestApproval(
   });
   await writeAudit(db, {
     type: "approval.requested",
+    appId: state.appId,
     severity: "warning",
     sessionId: state.id,
     toolCallId,

@@ -7,6 +7,7 @@ import type { EnforcementDeps } from "./ports";
 import type { ExecResult } from "./types";
 
 export interface ExecutionRequest {
+  appId: string;
   sessionId: string;
   toolCallId: string;
   tool: string;
@@ -47,6 +48,7 @@ export async function runExecution(deps: EnforcementDeps, req: ExecutionRequest,
       .where(eq(s.toolCalls.id, toolCallId));
     await writeAudit(tx, {
       type: exec.ok ? "tool_call.executed" : "tool_call.failed",
+      appId: req.appId,
       severity: exec.ok ? "info" : "warning",
       sessionId,
       toolCallId,

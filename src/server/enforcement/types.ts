@@ -4,6 +4,7 @@ import type { CorpusItem, Mandate, ProvenanceSource, Sensitivity } from "@/serve
 /** In-memory state of one agent session (sources keep content for provenance matching only). */
 export interface SessionState {
   id: string;
+  appId: string;
   userId: string;
   agentId: string;
   policyId: string;
