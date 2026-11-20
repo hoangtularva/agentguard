@@ -67,7 +67,7 @@ Method: assets → trust boundaries → threats (STRIDE-flavoured, focused on ag
 - **Semantic misuse inside an allowed scope.** For example, the agent emails an *allowed* recipient with misleading content. Policy governs *where* and *what class* of data goes, not whether the content is truthful.
 - **Real authentication.** The demo identity cookie is not SSO. A real deployment needs OIDC, per-agent credentials (e.g. mTLS/SPIFFE), and an approver separate from the requester for high-risk actions.
 - **Same-process enforcement.** The PEP runs in the same Node process as the agent runtime. A compromised process can bypass it. Production should isolate executors behind a separate service holding the credentials (see [security-boundaries.md](security-boundaries.md)).
-- **Audit tamper evidence.** Audit rows are append-only by convention, not hash-chained or signed.
+- **Audit tamper evidence.** ~~Not hash-chained~~ Since Phase 4 (O1) sealed events form a SHA-256 hash chain (`audit-chain.ts`, *Verify audit chain* on Security Events, `npm run admin -- audit-verify`). Still open: events can be altered in the seconds before sealing, and deleting the newest events is detectable only against an externally recorded head.
 - **Multi-connection row locking on real PostgreSQL** is designed for (`FOR UPDATE` plus unique constraints) but was only exercised on PGlite and a single-connection wire server (see [BLOCKERS.md](BLOCKERS.md)).
 - **LLM-specific behaviour.** No LLM adversarial run was executed (no API key in this environment).
 
@@ -130,3 +130,4 @@ New assets: API keys, decision tokens, per-app tool specs, external sessions' pr
 | T45 | Third-party content leaves the host app | **Reduced**: privacy mode sends email/URL fingerprints + local signals; content arguments hashed in audit. Residual: tool arguments are sent in full |
 | T46 | Malicious MCP config (SSRF via upstream URL) | **Out of API reach**: upstream is set only in the operator's config file; the model can't change it or the mandate |
 | T47 | Sub-agent laundering of untrusted content | **Reduced**: participant agents share the session's provenance; non-participants fail identity checks. Residual: content routed outside AgentGuard and re-entered unregistered |
+| T48 | Silent edit/deletion of audit history by someone with database access | **Mitigated for sealed events (O1)**: hash chain detects edits, deletions, reordering and re-hashing of a single event; tests on PGlite and concurrent sealers on PG16. Residual: pre-seal window, tail truncation without an external anchor, an attacker who rewrites the whole chain |

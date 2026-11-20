@@ -181,7 +181,7 @@ Each item is chosen for *measurable* benefit; performance items are done only af
 
 | ID | Proposal | Why / expected benefit | Priority | Effort |
 |---|---|---|---|---|
-| O1 | **Tamper-evident audit log** (hash chain: each event stores `prev_hash`, `hash = sha256(prev_hash ‖ canonical(event))`; `GET /v1/audit/verify`) | Detects edits/deletions of audit rows (gap listed in threat model) | High | S |
+| O1 ✅ | **Tamper-evident audit log** (hash chain: each event stores `prev_hash`, `hash = sha256(prev_hash ‖ canonical(event))`; `GET /v1/audit/verify`) | Detects edits/deletions of audit rows (gap listed in threat model) | High | S |
 | O2 | **Ed25519-signed decision tokens** (public key at `/v1/.well-known/agentguard-keys`) instead of shared HMAC only | Tool backends verify without holding a secret; key rotation via `kid` | High | S |
 | O3 | **Per-API-key rate limiting** (token bucket, in-process) + 429 with `Retry-After` | DoS / runaway-agent protection beyond single-flight | High | S |
 | O4 | **Compiled-policy cache** keyed by `(policyId, version, documentHash)`; compiled ToolSpec cache per app | Avoid re-parsing Zod/Ajv on every call (measure before/after with `/v1/check` latency) | Medium | S |

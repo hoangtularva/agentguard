@@ -4,6 +4,7 @@ import { DecisionBadge, EmptyState, JsonBlock, PageHeader, Panel, Pill, timeAgo 
 import { cn } from "@/lib/utils";
 import { getCurrentUser } from "@/server/app-context";
 import { listEvents, toolCallsByIds } from "@/server/queries";
+import { AuditChainCheck } from "./audit-chain-check";
 
 export const metadata = { title: "Security Events" };
 
@@ -38,7 +39,9 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
 
   return (
     <>
-      <PageHeader title="Security Events" description="Append-only audit trail. Payloads are redacted: content arguments are stored as length + hash, secrets are masked." />
+      <PageHeader title="Security Events" description="Append-only, hash-chained audit trail. Payloads are redacted: content arguments are stored as length + hash, secrets are masked.">
+        {user.role !== "member" && <AuditChainCheck />}
+      </PageHeader>
       <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
         {(Object.keys(FILTERS) as (keyof typeof FILTERS)[]).map((k) => (
           <div key={k} className="flex items-center gap-1">

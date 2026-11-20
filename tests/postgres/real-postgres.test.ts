@@ -10,6 +10,7 @@ import { DEFAULT_POLICY_ID, DEMO_AGENT_ID } from "@/server/db/seed";
 import { decideApproval } from "@/server/enforcement/approvals";
 import { EnforcementPoint } from "@/server/enforcement/pep";
 import { createPolicyVersion, dbPolicyResolver } from "@/server/enforcement/policy-store";
+import { sealAuditChain, verifyAuditChain } from "@/server/enforcement/audit-chain";
 import { authenticateApiKey, createApiKey, createApp } from "@/server/integration/apps";
 import * as v1 from "@/server/integration/service";
 import journal from "../../drizzle/meta/_journal.json";
@@ -253,5 +254,12 @@ describe("real PostgreSQL 16", () => {
     );
     expect(verified.filter((x) => x.valid).length).toBe(1);
     expect(verified.filter((x) => x.code === "REPLAYED").length).toBe(9);
+  });
+  it("audit chain: concurrent sealers on separate connections produce one valid chain", async () => {
+    await Promise.all([1, 2, 3, 4, 5].map(() => sealAuditChain(db)));
+    const v = await verifyAuditChain(db);
+    expect(v.ok).toBe(true);
+    expect(v.length).toBeGreaterThan(20);
+    expect(v.unsealed).toBe(0);
   });
 });
