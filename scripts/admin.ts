@@ -5,6 +5,7 @@
  *   npm run admin -- create-key <appId> <name> [--scopes check,verify,admin] [--agent <agentRef>]
  *   npm run admin -- revoke-key <appId> <keyId>
  *   npm run admin -- token-key <appId>     (offline verification key for tool services; keep secret)
+ *   npm run admin -- audit-verify          (seal pending audit events, then verify the hash chain)
  *   npm run admin -- list
  *
  * With PGlite, stop `npm run dev` first (the embedded database allows one process).
@@ -12,6 +13,7 @@
 import { createDatabase } from "@/server/db/client";
 import * as s from "@/server/db/schema";
 import { eq } from "drizzle-orm";
+import { sealAuditChain, verifyAuditChain } from "@/server/enforcement/audit-chain";
 import { API_SCOPES, type ApiScope, createApiKey, createApp, revokeApiKey, tokenKeyFor } from "@/server/integration/apps";
 
 const [cmd, ...rest] = process.argv.slice(2);
@@ -52,6 +54,13 @@ async function main() {
 ${tokenKeyFor(app)}`);
       break;
     }
+    case "audit-verify": {
+      while ((await sealAuditChain(db)) === 1000);
+      const v = await verifyAuditChain(db);
+      console.log(JSON.stringify(v, null, 2));
+      if (!v.ok) process.exit(2);
+      break;
+    }
     case "list": {
       const apps = await db.select().from(s.apps);
       const keys = await db.select({ id: s.apiKeys.id, appId: s.apiKeys.appId, name: s.apiKeys.name, prefix: s.apiKeys.prefix, scopes: s.apiKeys.scopes, revokedAt: s.apiKeys.revokedAt }).from(s.apiKeys);
@@ -62,7 +71,7 @@ ${tokenKeyFor(app)}`);
       break;
     }
     default:
-      console.log("Commands: create-app <id> <name> | create-key <appId> <name> [--scopes a,b] [--agent ref] | revoke-key <appId> <keyId> | token-key <appId> | list");
+      console.log("Commands: create-app <id> <name> | create-key <appId> <name> [--scopes a,b] [--agent ref] | revoke-key <appId> <keyId> | token-key <appId> | audit-verify | list");
   }
   process.exit(0);
 }

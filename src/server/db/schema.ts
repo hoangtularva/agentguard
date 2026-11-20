@@ -282,8 +282,16 @@ export const auditEvents = pgTable(
     reasonCodes: jsonb("reason_codes").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
     payload: jsonb("payload").notNull(),
     createdAt: createdAt(),
+    /** Tamper evidence: position in the hash chain and sha256(prev chain_hash ‖ canonical(event)). Set by the sealer. */
+    chainPos: integer("chain_pos"),
+    chainHash: text("chain_hash"),
   },
-  (t) => [index("audit_created_idx").on(t.createdAt), index("audit_session_idx").on(t.sessionId)],
+  (t) => [
+    index("audit_created_idx").on(t.createdAt),
+    index("audit_session_idx").on(t.sessionId),
+    uniqueIndex("audit_chain_pos_uq").on(t.chainPos),
+    index("audit_unsealed_idx").on(t.createdAt).where(sql`${t.chainPos} is null`),
+  ],
 );
 
 export const benchmarkRuns = pgTable("benchmark_runs", {

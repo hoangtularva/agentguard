@@ -32,7 +32,7 @@ Telling the model to "ignore instructions in documents" doesn't count as a contr
 - **Mandate (task scope):** the user's per-task grant of tools, resources and destinations. The agent cannot widen it.
 - **Destination provenance:** an outbound destination that came from retrieved content or was invented by the model is never auto-allowed, and unknown ones are default-denied.
 - **Bound human approvals:** `sha256(call, session, user, agent, tool, args, policy version)`. Single use, expiring, invalidated by policy changes, atomic and replay-proof on PostgreSQL.
-- **Audit log** with redaction (content hashed, secrets masked), viewer-scoped dashboards, CSRF/CSP/body limits.
+- **Tamper-evident audit log** (hash chain, one-click verification) with redaction (content hashed, secrets masked), viewer-scoped dashboards, CSRF/CSP/body limits.
 - **Bring any model:** deterministic simulated agent, **Ollama** (free, local), or **Anthropic**.
 - **Reproducible benchmarks:** a simulated suite (37 scenarios) plus a **real-LLM** suite with dev/holdout splits, multiple seeds and confidence intervals.
 - **Guard agents in any codebase:** `/v1` decision API, zero-dependency **TypeScript and Python SDKs**, an **MCP gateway** (no code changes), and **tool-side verifiers** so tools refuse calls the guard didn't allow. Multi-agent sessions keep one provenance record across hand-offs.
@@ -158,12 +158,12 @@ npm run bench:llm -- --set v2-holdout --runs 3   # real-LLM benchmark (needs Oll
 
 ## 🔒 Security
 
-AgentGuard was red-teamed against itself; findings and fixes are in [docs/PHASE3_FINDINGS.md](docs/PHASE3_FINDINGS.md). It is **not production-ready**: there is no real IdP, the PEP and executors share a process, and the audit log is not yet hash-chained. Report vulnerabilities privately; see [SECURITY.md](SECURITY.md).
+AgentGuard was red-teamed against itself; findings and fixes are in [docs/PHASE3_FINDINGS.md](docs/PHASE3_FINDINGS.md). It is **not production-ready**: there is no real IdP and the PEP and executors share a process (the audit log is hash-chained, but the newest events are only protected once sealed, and truncation needs an external copy of the chain head). Report vulnerabilities privately; see [SECURITY.md](SECURITY.md).
 
 ## 🗺️ Roadmap
 
 - External integration: `/v1` API, TS/Python SDKs, MCP gateway, tool-side verifier
-- Tamper-evident audit (hash chain), Ed25519 decision tokens, per-key rate limits
+- Ed25519 decision tokens, external anchoring of the audit chain head
 - Delegation-chain provenance for multi-agent hand-offs, per-agent kill switch
 - Policy-as-code (YAML, templates, CI tests), more models in the real-LLM track, AgentDojo port
 

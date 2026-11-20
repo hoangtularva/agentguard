@@ -52,7 +52,16 @@ const g = globalThis as unknown as { __agentguardDb?: Promise<DB> };
 /** Process-wide database handle (survives Next.js dev hot reloads). */
 export function getDb(): Promise<DB> {
   if (!g.__agentguardDb) {
-    g.__agentguardDb = createDatabase().catch((e) => {
+    g.__agentguardDb = createDatabase()
+      .then(async (db) => {
+        // Tamper-evident audit: seal new events every few seconds (not inside test runners).
+        if (!process.env.VITEST && process.env.AGENTGUARD_AUDIT_SEALER !== "0") {
+          const { startAuditSealer } = await import("@/server/enforcement/audit-chain");
+          startAuditSealer(db);
+        }
+        return db;
+      })
+      .catch((e) => {
       g.__agentguardDb = undefined;
       throw e;
     });
