@@ -6,6 +6,7 @@
  *   npm run admin -- revoke-key <appId> <keyId>
  *   npm run admin -- token-key <appId>     (offline verification key for tool services; keep secret)
  *   npm run admin -- token-alg <appId> hmac|ed25519   (decision-token signature; ed25519 = verify with a public key)
+ *   npm run admin -- budget <appId> <n|off>         (max outbound actions per session)
  *   npm run admin -- audit-verify          (seal pending audit events, then verify the hash chain)
  *   npm run admin -- list
  *
@@ -64,6 +65,16 @@ ${tokenKeyFor(app)}`);
       console.log(`${app.id} now issues ${alg} decision tokens.${alg === "ed25519" ? ` Public key: GET /v1/keys/${app.id}` : ""}`);
       break;
     }
+    case "budget": {
+      const [appId, n] = rest;
+      const [app] = await db.select().from(s.apps).where(eq(s.apps.id, appId ?? ""));
+      if (!app || app.id === "demo") throw new Error("Unknown app.");
+      const max = n === "off" ? undefined : Number(n);
+      if (max !== undefined && !(Number.isInteger(max) && max > 0)) throw new Error("usage: budget <appId> <positive integer|off>");
+      await db.update(s.apps).set({ settings: { ...app.settings, maxSinkCallsPerSession: max } }).where(eq(s.apps.id, app.id));
+      console.log(max ? `${app.id}: at most ${max} outbound action(s) per session.` : `${app.id}: no session budget.`);
+      break;
+    }
     case "audit-verify": {
       while ((await sealAuditChain(db)) === 1000);
       const v = await verifyAuditChain(db);
@@ -81,7 +92,7 @@ ${tokenKeyFor(app)}`);
       break;
     }
     default:
-      console.log("Commands: create-app <id> <name> | create-key <appId> <name> [--scopes a,b] [--agent ref] | revoke-key <appId> <keyId> | token-key <appId> | token-alg <appId> hmac|ed25519 | audit-verify | list");
+      console.log("Commands: create-app <id> <name> | create-key <appId> <name> [--scopes a,b] [--agent ref] | revoke-key <appId> <keyId> | token-key <appId> | token-alg <appId> hmac|ed25519 | budget <appId> <n|off> | audit-verify | list");
   }
   process.exit(0);
 }

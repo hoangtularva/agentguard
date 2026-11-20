@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { computeBindingHash } from "@/server/core/approval-binding";
 import { hashCanonical } from "@/server/core/canonical";
 import { type PolicyDecision, evaluatePolicy } from "@/server/core/policy-engine";
@@ -20,6 +20,17 @@ const STATUS: Record<PolicyDecision["decision"], CallStatus> = {
   REVIEW: "pending_approval",
   ALLOW: "executed",
 };
+
+/** Outbound (sink) calls that were not blocked count against the per-session limit, if any. */
+async function sinkBudget(deps: EnforcementDeps, sessionId: string) {
+  const max = deps.limits?.maxSinkCallsPerSession;
+  if (!max) return undefined;
+  const [{ n }] = await deps.db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(s.toolCalls)
+    .where(and(eq(s.toolCalls.sessionId, sessionId), ne(s.toolCalls.decision, "BLOCK"), sql`${s.toolCalls.provenance} -> 'destination' is not null`));
+  return { sinkCalls: n, maxSinkCalls: max };
+}
 
 /** Evaluate the active policy; fail closed (BLOCK) when it cannot be loaded or evaluated. */
 async function decide(deps: EnforcementDeps, policyId: string, input: Parameters<typeof evaluatePolicy>[0]) {
@@ -48,7 +59,7 @@ export async function checkToolCall(deps: EnforcementDeps, state: SessionState, 
   const { db } = deps;
   const t0 = performance.now();
   const identity = await verifyIdentity(db, state, call);
-  const built = buildPolicyInput(state, call, identity, deps);
+  const built = buildPolicyInput(state, call, identity, deps, await sinkBudget(deps, state.id));
   const { input, args } = built;
   const snapshot = call.parentCallId ? { ...built.snapshot, delegatedFrom: call.parentCallId } : built.snapshot;
 

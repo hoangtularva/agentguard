@@ -38,6 +38,8 @@ export interface PolicyInput {
   mandate: Mandate;
   resources: { id: string; sensitivity: Sensitivity; exists: boolean }[];
   destination?: { value: string; inMandate: boolean; origin: ArgumentOrigin[] };
+  /** Containment: sink calls already allowed or pending in this session vs. the app's limit. */
+  budget?: { sinkCalls: number; maxSinkCalls: number };
   /** Max sensitivity of data that may flow into this call (session-level taint, conservative). */
   dataSensitivity: Sensitivity;
   untrustedContext: boolean;
@@ -51,6 +53,7 @@ export type ReasonCode =
   | "TOOL_NOT_IN_MANDATE"
   | "RESOURCE_OUT_OF_SCOPE"
   | "RESOURCE_NOT_FOUND"
+  | "BUDGET_EXCEEDED"
   | "UNTRUSTED_DESTINATION"
   | "RULE_MATCHED"
   | "NO_MATCHING_POLICY";
@@ -152,6 +155,9 @@ export function evaluatePolicy(input: PolicyInput, policy: PolicyRef): PolicyDec
       "RESOURCE_OUT_OF_SCOPE",
       `Resource(s) outside the task scope: ${outOfScope.map((r) => r.id).join(", ")}.`,
     );
+
+  if (input.tool.kind === "sink" && input.budget && input.budget.sinkCalls >= input.budget.maxSinkCalls)
+    return block("BUDGET_EXCEEDED", `This session already used its ${input.budget.maxSinkCalls} outbound action(s); start a new task.`);
 
   let floor: Decision = "ALLOW";
   if (input.tool.kind === "sink" && input.destination) {

@@ -70,6 +70,7 @@ export async function depsFor(db: DB, principal: ApiPrincipal, now: () => Date =
     resolvePolicy: dbPolicyResolver(db),
     clock: { now },
     appId: principal.app.id,
+    limits: { maxSinkCallsPerSession: Number(principal.app.settings.maxSinkCallsPerSession) || undefined },
   };
 }
 

@@ -103,3 +103,33 @@ describe("/v1 red-team regressions", () => {
     delete process.env.AGENTGUARD_V1_RATE;
   });
 });
+
+describe("containment (O8)", () => {
+  it("a session budget caps outbound actions, and a frozen agent is blocked everywhere", async () => {
+    const { eq } = await import("drizzle-orm");
+    const s = await import("@/server/db/schema");
+    const app = await createApp(db, { id: "capped", name: "capped", createdBy: "u_bob" });
+    await db.update(s.apps).set({ settings: { maxSinkCallsPerSession: 1 } }).where(eq(s.apps.id, "capped"));
+    const p = { keyId: "setup", app: { ...app, settings: { maxSinkCallsPerSession: 1 } }, agentId: null, scopes: ["admin" as const, "check" as const] };
+    await v1.putTool(db, p, "notify", {
+      name: "notify",
+      kind: "sink",
+      risk: "low",
+      destinationArg: "to",
+      inputSchema: { type: "object", properties: { to: { type: "string" } }, required: ["to"] },
+    });
+    await v1.putAgent(db, p, "bot", { name: "bot", allowedTools: ["notify"], active: true });
+    const key = (await createApiKey(db, { appId: "capped", name: "k", scopes: ["check"], createdBy: "u_bob" })).key;
+    const ses = json(await call(sessionsRoute, key, { userRef: "u", agentId: "bot", prompt: "notify ops@capped.test", mandate: { tools: ["notify"] } }));
+    const send = () => call(checkRoute, key, { sessionId: ses.sessionId, agentId: "bot", tool: "notify", args: { to: "ops@capped.test" } });
+    expect(json(await send()).decision).toBe("ALLOW");
+    const second = json(await send());
+    expect(second.decision).toBe("BLOCK");
+    expect(second.reasons[0].code).toBe("BUDGET_EXCEEDED");
+
+    await v1.putAgent(db, p, "bot", { name: "bot", allowedTools: ["notify"], active: false }); // kill switch
+    const frozen = json(await call(checkRoute, key, { sessionId: ses.sessionId, agentId: "bot", tool: "notify", args: { to: "ops@capped.test" } }));
+    expect(frozen.decision).toBe("BLOCK");
+    expect(frozen.reasons[0].code).toBe("IDENTITY_UNVERIFIED");
+  });
+});

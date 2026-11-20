@@ -48,6 +48,8 @@ export interface EnforcementDeps {
   /** Absent = decision-only mode: ALLOW issues a decision token instead of executing. */
   runner?: ToolRunner;
   tokens?: DecisionTokenIssuer;
+  /** Containment limits (per app). */
+  limits?: { maxSinkCallsPerSession?: number };
   /** Tenant this instance acts for; approvals of other apps are invisible to it. */
   appId?: string;
   resolvePolicy: PolicyResolver;
