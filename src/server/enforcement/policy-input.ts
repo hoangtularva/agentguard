@@ -23,6 +23,7 @@ export function buildPolicyInput(
   call: ProposedToolCall,
   identity: Identity,
   catalog: { tools: ToolCatalog; resources: ResourceResolver },
+  budget?: PolicyInput["budget"],
 ): BuiltInput {
   const tool = catalog.tools.get(call.tool);
   const sourcesInContext = state.sources.map(({ id, type, trust, label, sensitivity, signals }) => ({
@@ -68,6 +69,6 @@ export function buildPolicyInput(
   return {
     args,
     snapshot: { dataSensitivity, destination, sourcesInContext, signals },
-    input: { ...base, tool: facts, argsValid: true, resources, destination, dataSensitivity },
+    input: { ...base, tool: facts, argsValid: true, resources, destination, dataSensitivity, budget },
   };
 }

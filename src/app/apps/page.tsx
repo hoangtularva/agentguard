@@ -31,6 +31,7 @@ export default async function AppsPage() {
     name: a.name,
     defaultPolicyId: a.defaultPolicyId,
     tokenAlg: tokenAlgOf(a),
+    maxSinkCallsPerSession: Number(a.settings.maxSinkCallsPerSession) || undefined,
     calls: Number(a.calls),
     keys: a.keys.map((k) => ({
       ...k,

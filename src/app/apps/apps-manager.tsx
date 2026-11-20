@@ -12,6 +12,7 @@ export interface AppView {
   name: string;
   defaultPolicyId: string;
   tokenAlg: "hmac" | "ed25519";
+  maxSinkCallsPerSession?: number;
   calls: number;
   keys: { id: string; name: string; prefix: string; scopes: string[]; agentId: string | null; createdAt: string; lastUsedAt: string | null; revokedAt: string | null }[];
   tools: { name: string; version: number; kind: string; risk: string; destinationArg?: string }[];
@@ -90,6 +91,16 @@ export function AppCard({ app }: { app: AppView }) {
       setBusy(false);
     }
   }
+  /** Kill switch: a frozen agent's checks are all BLOCKed (identity verification fails). */
+  async function setActive(agentRef: string, active: boolean) {
+    try {
+      await post(`/api/apps/${app.id}/agents/${encodeURIComponent(agentRef)}`, "PATCH", { active });
+      toast(active ? `${agentRef} unfrozen` : `${agentRef} frozen: every call it proposes is blocked`);
+      router.refresh();
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }
   async function revoke(keyId: string) {
     setConfirming(null);
     try {
@@ -133,12 +144,18 @@ export function AppCard({ app }: { app: AppView }) {
           <h4 className="mb-1.5 mt-3 text-xs font-medium text-muted-foreground">Agents ({app.agents.length})</h4>
           <ul className="space-y-1 text-xs">
             {app.agents.map((g) => (
-              <li key={g.ref}>
+              <li key={g.ref} className="flex flex-wrap items-center gap-2">
                 <span className="font-mono">{g.ref}</span> <span className="text-muted-foreground">→ {g.allowedTools.join(", ") || "no tools"}</span>
-                {!g.active && <Pill tone="block">inactive</Pill>}
+                {!g.active && <Pill tone="block">frozen</Pill>}
+                <Button variant={g.active ? "ghost" : "outline"} size="sm" className="ml-auto h-6 px-2 text-xs" onClick={() => setActive(g.ref, !g.active)}>
+                  {g.active ? "Freeze" : "Unfreeze"}
+                </Button>
               </li>
             ))}
           </ul>
+          {app.maxSinkCallsPerSession && (
+            <p className="mt-2 text-xs text-muted-foreground">Budget: at most {app.maxSinkCallsPerSession} outbound action(s) per session.</p>
+          )}
         </section>
 
         <section>
