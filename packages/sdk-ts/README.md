@@ -17,7 +17,7 @@ const session = await ag.startSession({
 });
 
 const research = guardTools(session, { read_inbox: (args) => mail.list(args) });
-const write = guardTools(session.as("writer"), {
+const write = guardTools(await session.handoff("writer", researcherNotes), {   // notes = untrusted provenance
   send_email: (args, ctx) => mail.send(args, { agentguardToken: ctx.decisionToken }),
 });
 

@@ -112,11 +112,19 @@ class Session:
         return self.ag.request("POST", f"/v1/sessions/{self.id}/sources",
                                {"type": type, "label": label, "sensitivity": sensitivity, **self.ag._provenance(type, content)})
 
-    def check(self, tool: str, args: dict, rationale: Optional[str] = None) -> dict:
+    def check(self, tool: str, args: dict, rationale: Optional[str] = None, parent_call_id: Optional[str] = None) -> dict:
         body = {"sessionId": self.id, "agentId": self.agent_id, "tool": tool, "args": args}
         if rationale:
             body["rationale"] = rationale
+        if parent_call_id:
+            body["parentCallId"] = parent_call_id
         return self.ag.request("POST", "/v1/check", body)
+
+    def handoff(self, to_agent: str, message: str) -> "Session":
+        """Multi-agent hand-off: register this agent's message to `to_agent` as UNTRUSTED provenance
+        (it may carry what this agent read), then continue as `to_agent` in the same session."""
+        self.add_source(type="agent_message", label=f"{self.agent_id} -> {to_agent}", content=message)
+        return self.as_agent(to_agent)
 
     def wait_for_approval(self, approval_id: str, timeout: float = 600, interval: float = 2.0) -> dict:
         deadline = time.monotonic() + timeout

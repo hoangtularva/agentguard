@@ -19,6 +19,8 @@ export interface ProposedToolCall {
   /** Identity the agent runtime claims; must match the session's agent. */
   agentId: string;
   rationale?: string;
+  /** Multi-agent delegation: the call whose agent handed this step over (audit only). */
+  parentCallId?: string;
 }
 
 /** "allowed": decision-only mode, the host app executes and reports the result. */
@@ -29,6 +31,7 @@ export interface ProvenanceSnapshot {
   destination?: PolicyInput["destination"];
   sourcesInContext: { id: string; type: string; trust: string; label: string; sensitivity: string; signals: string[] }[];
   signals: string[];
+  delegatedFrom?: string;
 }
 
 export interface EnforcementResult {

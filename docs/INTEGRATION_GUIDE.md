@@ -35,7 +35,7 @@ Need decisions inside your own process, no server (tests, offline evaluation)?
 | **ToolSpec** | JSON Schema of the arguments + `kind` (`source` reads data in, `sink` sends it out) + `risk` + argument roles: `destinationArg` (required for sinks), `resourceArg`, `contentArgs`. Unknown arguments are always rejected. |
 | **Agent** | An identity with an upper bound of tools (`allowedTools`). Keys can be bound to one agent. |
 | **Session** | One user task. Its **prompt is the trusted channel**: emails/URLs the user typed there are authorized destinations. Sub-agents are listed in `agents` and share the session's provenance. |
-| **Source** | Content the agent saw (email, web page, document, another agent's output). Untrusted. Privacy mode sends only its emails/URLs (fingerprints) and locally detected injection signals. |
+| **Source** | Content the agent saw (email, web page, document, another agent's output). Untrusted. Hand-offs between agents use `session.handoff(toAgent, message)` (type `agent_message`); `/v1/check` accepts `parentCallId` to record which call delegated the step. Privacy mode sends only its emails/URLs (fingerprints) and locally detected injection signals. |
 | **Decision token** | Binds app, agent, call, tool and a canonical hash of the arguments; expires in 60 s; single use. `agt1` = HMAC (offline verification needs the shared key); `agt2` = **Ed25519** (`npm run admin -- token-alg <app> ed25519`; tools verify with the public key from `GET /v1/keys/<app>`, no secret). |
 
 Keys and scopes: `check` (sessions, sources, check, approvals, results), `verify` (token verification, for tool services), `admin` (tools, agents). Keys are shown once and stored as SHA-256 hashes.

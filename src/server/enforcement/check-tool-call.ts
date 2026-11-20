@@ -48,7 +48,9 @@ export async function checkToolCall(deps: EnforcementDeps, state: SessionState, 
   const { db } = deps;
   const t0 = performance.now();
   const identity = await verifyIdentity(db, state, call);
-  const { input, args, snapshot } = buildPolicyInput(state, call, identity, deps);
+  const built = buildPolicyInput(state, call, identity, deps);
+  const { input, args } = built;
+  const snapshot = call.parentCallId ? { ...built.snapshot, delegatedFrom: call.parentCallId } : built.snapshot;
 
   const e0 = performance.now();
   const { policy, decision } = await decide(deps, state.policyId, input);
@@ -99,6 +101,7 @@ export async function checkToolCall(deps: EnforcementDeps, state: SessionState, 
       destination: snapshot.destination,
       dataSensitivity: snapshot.dataSensitivity,
       signals: snapshot.signals,
+      delegatedFrom: snapshot.delegatedFrom,
     },
   });
 
