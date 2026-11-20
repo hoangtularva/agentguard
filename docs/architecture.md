@@ -91,3 +91,28 @@ Then the executor runs in a transaction that inserts `executions` with unique `t
 | AC9 | Docker Compose runs the stack | Verified: healthy services, migrations on PG 16.15, Playwright 13/13 against the stack |
 | AC10 | Real PostgreSQL concurrency | `npm run test:pg` (11 tests, 10-connection pool) |
 | AC11 | Real LLM tool calls go through the PEP | `tests/integration/llm-provider.test.ts` (malicious fake provider), `npm run bench:llm` with Ollama |
+
+## External integration (Phase 4)
+
+```mermaid
+flowchart LR
+  subgraph Host["Your app (any codebase)"]
+    A1[Agent A] -->|guard()| SDK[AgentGuard SDK<br/>TS / Python]
+    A2[Agent B] -->|guard()| SDK
+    MC[MCP client] -->|stdio| GW[MCP gateway]
+    T[Tool service] -->|verify token| VF[DecisionVerifier]
+  end
+  SDK -->|/v1 sessions · sources · check · results| V1[/v1 controllers<br/>Bearer key · scopes · rate limit/]
+  GW -->|/v1| V1
+  VF -->|/v1/tokens/verify or offline HMAC| V1
+  V1 --> UC[Use cases<br/>startSession · checkToolCall · consumeApproved · reportResult]
+  UC --> PDP[PDP · pure]
+  UC --> DB[(PostgreSQL<br/>app_id on every row)]
+  UI[Approval Inbox] -->|decide| DB
+  GW -->|allowed calls + token| UP[Upstream MCP server]
+```
+
+- **Hexagonal core.** `src/server/enforcement/` holds use cases (`check-tool-call.ts`, `execute-approved.ts`, `session.ts`, `execution.ts`) that depend only on ports (`ports.ts`: `ToolCatalog`, `ResourceResolver`, `ToolRunner`, `DecisionTokenIssuer`, `Clock`). `EnforcementPoint` (pep.ts) is the facade and composition root for the built-in demo (registry, corpus, mock executors); `integration/service.ts#depsFor` is the composition root for an API request (the app's DB-backed catalogs, **no runner**, a token issuer, tenant scope).
+- **Decision-only mode.** Without a runner, ALLOW marks the call `allowed` and issues a token; the host executes and reports `POST /v1/calls/:id/result` (→ `executed`/`failed`; its output becomes untrusted provenance). REVIEW approvals are consumed for a token instead of executed.
+- **Stateless sessions.** API sessions are rebuilt per request from the database; provenance is matched on stored fingerprints (emails/URLs), so no third-party content is kept.
+- **Same rules for everyone.** The demo playground and external apps share the PDP, provenance tracing, approval binding and audit; only the adapters differ.

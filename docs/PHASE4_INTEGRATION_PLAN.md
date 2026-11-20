@@ -164,7 +164,7 @@ Priority order: M1 → M2/M3 → M4 → M5 → M6 → M7 → M8.
 | P4.6 | MCP gateway | **done**: packages/mcp-gateway (McpGateway + stdio CLI, stdio/HTTP upstream, env: secrets, tool registration from inputSchema + role, REVIEW wait); in-process MCP test (hidden tools, token in _meta, blocked exfil, scope, review) |
 | P4.7 | Examples (TS, Python, MCP) + automated proof | **done**: examples/ (TS SDK, Python SDK, MCP gateway CLI + unmodified mock MCP server), `examples:setup`; tests/integration/examples.test.ts proves the same outcome (ran / BLOCK / REVIEW, nothing sent) for all three |
 | P4.8 | Packaging (tarballs, wheel, sidecar) + Apps/API keys UI + INTEGRATION_GUIDE | **done**: `npm run package` (3 tgz + wheel, install-tested in a clean dir/venv), docker-compose.sidecar.yml (run: /v1 reachable from another container on the private network), Apps & API keys UI (create app, key shown once, two-step revoke, tools/agents) + app labels in Inbox/Events, docs/INTEGRATION_GUIDE.md, 2 e2e tests; verified on the Docker stack (TS example → ran/BLOCK/REVIEW, approve in UI → consume once) |
-| P4.9 | Security review of new surface + latency + docs | todo |
+| P4.9 | Security review of new surface + latency + docs | **done**: tests/integration/v1-security.test.ts (5 attacks: forged trusted source, cross-tenant session/call/approval/consume, demo execute of external approval, key echo, rate limit + Retry-After); bench:v1 baseline (PG16 p50 13.5–20.5 ms, PGlite 22–29 ms); threat model T36–T47, architecture, case study, interview guide, README |
 | P4.10 | Optimisations O1–O13 (§7) | todo |
 
 ## 6. Decisions already made

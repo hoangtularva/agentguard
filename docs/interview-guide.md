@@ -70,3 +70,17 @@ Identity and authorization gaps in the *application around* the guard: an implic
 
 **What surprised you about real models?**
 Hallucinated destinations. Unguarded, the 3B model invented recipients and *sent internal data to them*. That isn't an attack, but provenance-based default deny stops it all the same.
+
+## Phase 4 questions (integration with other codebases)
+
+**"How would I use this with my own multi-agent app?"** Register the app and its tools (JSON Schema + source/sink + destination argument), wrap each tool function with the SDK's `guard()` (or put the MCP gateway in front of an MCP server). The agent asks before each call; AgentGuard answers ALLOW (+ token), REVIEW or BLOCK. Sub-agents act in the same session, so content one agent read stays untrusted for the next.
+
+**"What stops an agent from just not calling AgentGuard?"** Nothing, if the tool doesn't check. That's why there are decision tokens: the tool service verifies a 60-second, single-use token bound to the exact tool and arguments, and refuses without one. Through the MCP gateway the check is in the path anyway.
+
+**"Why doesn't AgentGuard execute the tools for external apps?"** It would need the app's credentials and become the most valuable target in the system. Decision-only keeps secrets and side effects in the host; AgentGuard only decides, records and proves.
+
+**"What does AgentGuard learn about my users' data?"** In privacy mode (default) only the emails/URLs found in content plus local injection signals, never the text. Tool arguments are sent, because they are what the policy decides on; content arguments are hashed in the audit log.
+
+**"What if AgentGuard is down?"** The SDKs and the gateway fail closed: no decision, no side effect. Read-only tools can opt in to fail open.
+
+**"Biggest remaining weakness?"** The app backend that holds a `check` key is trusted to report the user's real request (T42). A compromised backend can open a session claiming the user asked to email the attacker. Mitigations are operational: keep keys out of the model's reach, bind them to agents, open sessions server-side.

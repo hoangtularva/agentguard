@@ -6,9 +6,9 @@ import { json, parseBody } from "@/server/http";
 import { type ApiPrincipal, type ApiScope, authenticateApiKey } from "./apps";
 import { ApiError } from "./service";
 
-/** Per-key token bucket (in-process): sustained RATE req/s, bursts up to BURST. */
-const RATE = 50;
-const BURST = 100;
+/** Per-key token bucket (in-process): sustained RATE req/s (AGENTGUARD_V1_RATE, default 50), bursts up to 2×RATE. */
+const RATE = Math.max(1, Number(process.env.AGENTGUARD_V1_RATE) || 50);
+const BURST = RATE * 2;
 const g = globalThis as unknown as { __agBuckets?: Map<string, { tokens: number; at: number }> };
 
 function take(keyId: string): boolean {
@@ -37,7 +37,11 @@ export function v1(scope: ApiScope, handler: (ctx: Ctx) => Promise<unknown>) {
       const principal = await authenticateApiKey(db, req.headers.get("authorization"));
       if (!principal) return json({ error: "unauthenticated", message: "Send a valid API key: Authorization: Bearer agk_…" }, 401);
       if (!principal.scopes.includes(scope)) return json({ error: "forbidden", message: `This key lacks the "${scope}" scope.` }, 403);
-      if (!take(principal.keyId)) return json({ error: "rate_limited", message: `Limit: ${RATE} requests/s per key.` }, 429);
+      if (!take(principal.keyId)) {
+        const res = json({ error: "rate_limited", message: `Limit: ${RATE} requests/s per key.` }, 429);
+        res.headers.set("retry-after", "1");
+        return res;
+      }
       const params = (await route?.params) ?? {};
       const out = await handler({ req, db, principal, params });
       return out instanceof Response ? out : json(out);
