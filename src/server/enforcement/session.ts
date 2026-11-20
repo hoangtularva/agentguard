@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { extractDestinations, extractFingerprints, makeSource, normalizeValue } from "@/server/core/provenance";
 import { MandateSchema, type ProvenanceSource, type UserRole, maxSensitivity } from "@/server/core/types";
 import type { DB } from "@/server/db/client";
@@ -19,6 +19,8 @@ export interface StartSessionParams {
   planner: string;
   origin?: "playground" | "benchmark" | "api";
   policyId: string;
+  /** Additional agents (same app) allowed to act in this session, e.g. sub-agents. */
+  agentIds?: string[];
 }
 
 /**
@@ -33,12 +35,16 @@ export async function startSession(deps: EnforcementDeps, params: StartSessionPa
   if (!user) throw new Error("Unknown user");
   const [agent] = await db.select().from(s.agents).where(eq(s.agents.id, params.agentId)).limit(1);
   if (!agent || !agent.active || agent.appId !== appId) throw new Error("Unknown or inactive agent");
+  const others = [...new Set(params.agentIds ?? [])].filter((a) => a !== agent.id);
+  const peers = others.length ? await db.select().from(s.agents).where(inArray(s.agents.id, others)) : [];
+  if (peers.length !== others.length || peers.some((p) => !p.active || p.appId !== appId)) throw new Error("Unknown or inactive agent");
+  const grantable = new Set([agent, ...peers].flatMap((a) => a.allowedTools));
 
   const destinations = [
     ...new Set([...(params.mandate.destinations ?? []).map(normalizeValue), ...extractDestinations(params.prompt)]),
   ];
   const mandate = MandateSchema.parse({
-    allowedTools: params.mandate.allowedTools.filter((t) => agent.allowedTools.includes(t) && deps.tools.get(t)),
+    allowedTools: params.mandate.allowedTools.filter((t) => grantable.has(t) && deps.tools.get(t)),
     resourceScope: params.mandate.resourceScope,
     destinations,
   });
@@ -55,6 +61,7 @@ export async function startSession(deps: EnforcementDeps, params: StartSessionPa
     status: "running",
     origin: params.origin ?? "playground",
     policyId: params.policyId,
+    agentIds: others,
   });
   const state: SessionState = {
     id,
@@ -124,10 +131,17 @@ export async function ingestOutput(db: DB, state: SessionState, toolCallId: stri
 export async function verifyIdentity(db: DB, state: SessionState, call: ProposedToolCall): Promise<Identity> {
   const [row] = await db.select().from(s.agentSessions).where(eq(s.agentSessions.id, state.id)).limit(1);
   const [user] = row ? await db.select().from(s.users).where(eq(s.users.id, row.userId)).limit(1) : [];
-  const [agent] = row ? await db.select().from(s.agents).where(eq(s.agents.id, row.agentId)).limit(1) : [];
+  const [agent] = row ? await db.select().from(s.agents).where(eq(s.agents.id, call.agentId)).limit(1) : [];
   return {
     userOk: !!row && !!user && row.userId === state.userId,
-    agentOk: !!row && !!agent && agent.active && row.appId === state.appId && agent.appId === row.appId && row.agentId === call.agentId && agent.allowedTools.includes(call.tool),
+    agentOk:
+      !!row &&
+      !!agent &&
+      agent.active &&
+      row.appId === state.appId &&
+      agent.appId === row.appId &&
+      (row.agentId === call.agentId || row.agentIds.includes(call.agentId)) &&
+      agent.allowedTools.includes(call.tool),
     userRole: (user?.role ?? "member") as UserRole,
   };
 }

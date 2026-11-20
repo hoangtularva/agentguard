@@ -159,7 +159,7 @@ Priority order: M1 → M2/M3 → M4 → M5 → M6 → M7 → M8.
 | P4.1b | Refactor to Ports & Adapters (§8): split PEP into use cases, ports, Drizzle adapters; thin routes; behaviour unchanged | **done**: pep.ts → facade + use cases (check-tool-call, execute-approved, session, execution), pure policy-input, ports (ToolCatalog, ResourceResolver, ToolRunner, Clock) |
 | P4.2 | Multi-tenant schema + migration + seed | **done**: migration 0001 (apps, api_keys, tool_specs, resource_labels, decision_tokens + app_id), upgrade test, tenancy tests |
 | P4.3 | `/v1` API + API keys + decision tokens + OpenAPI | **done**: /v1 (sessions, sources, check, approvals+consume, calls/result, tokens/verify, tools, agents, health, openapi.json), API keys (sha256, scopes, agent-bound, revoke), HMAC decision tokens, starter policy, rate limit, admin CLI; 6 API + 5 core + 1 real-PG concurrency tests |
-| P4.4 | TS SDK + Python SDK | todo |
+| P4.4 | TS SDK + Python SDK | **done**: packages/sdk-ts (zero-dep ESM+CJS+d.ts, guard/guardTools, waitForApproval, fail-closed, privacy mode) and sdk/python (urllib, guard/@guarded, offline token verify); multi-agent sessions (migration 0003); SDK e2e over HTTP + TS↔Python conformance |
 | P4.5 | Tool-side verifiers | todo |
 | P4.6 | MCP gateway | todo |
 | P4.7 | Examples (TS, Python, MCP) + automated proof | todo |

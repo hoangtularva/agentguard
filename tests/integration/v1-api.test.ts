@@ -161,6 +161,10 @@ describe("/v1 decision API", () => {
     expect(foreign.status).toBe(404);
     const bound = await call(checkRoute, keys.bound, { sessionId, agentId: "researcher", tool: "fetch_page", args: { url: "https://news.example/a" } });
     expect(bound.status).toBe(403);
+    // A registered agent that is not a participant of this session cannot act in it.
+    await call(putAgentRoute, keys.admin, { name: "Outsider", allowedTools: ["fetch_page"] }, { id: "outsider" }, "PUT");
+    const outsider = await call(checkRoute, keys.check, { sessionId, agentId: "outsider", tool: "fetch_page", args: { url: "https://news.example/a" } });
+    expect(outsider.data.reasons[0].code).toBe("IDENTITY_UNVERIFIED");
     const unknown = await call(checkRoute, keys.check, { sessionId, agentId: "researcher", tool: "drop_tables", args: {} });
     expect(unknown.data.decision).toBe("BLOCK");
     expect(unknown.data.reasons[0].code).toBe("UNKNOWN_TOOL");

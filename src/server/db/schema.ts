@@ -162,6 +162,8 @@ export const agentSessions = pgTable("agent_sessions", {
   origin: text("origin", { enum: ["playground", "benchmark", "api"] }).notNull().default("playground"),
   /** Policy bound at session start (null for sessions created before migration 0002). */
   policyId: text("policy_id"),
+  /** Other agents that may act in this session (multi-agent hand-offs share one provenance record). */
+  agentIds: jsonb("agent_ids").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   createdAt: createdAt(),
 });
 
