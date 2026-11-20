@@ -35,11 +35,21 @@ const OUTCOME_TONE: Record<string, "allow" | "block" | "review" | "neutral"> = {
 
 /** Real-LLM track: read-only view of the latest `npm run bench:llm` report (never mixed with the simulated numbers). */
 export function LlmResults() {
-  // Prefer the frozen v2 HOLDOUT report; fall back to older real-LLM reports.
+  // Prefer a local v2 HOLDOUT run; otherwise the committed HOLDOUT report shipped in docs/results
+  // (so a fresh clone or the Docker image shows real results without running Ollama).
+  const root = /* turbopackIgnore: true */ process.cwd();
+  const candidates = [path.join(root, "bench-results", "latest-llm-v2-holdout.json")];
+  try {
+    const committed = fs.readdirSync(path.join(root, "docs", "results")).filter((f) => f.endsWith("-v2-holdout.json")).sort().reverse();
+    candidates.push(...committed.map((f) => path.join(root, "docs", "results", f)));
+  } catch {
+    /* no committed results */
+  }
+  candidates.push(path.join(root, "bench-results", "latest-llm.json"));
   let r: LlmReport | null = null;
-  for (const name of ["latest-llm-v2-holdout.json", "latest-llm.json"]) {
+  for (const file of candidates) {
     try {
-      r = JSON.parse(fs.readFileSync(path.join(/* turbopackIgnore: true */ process.cwd(), "bench-results", name), "utf8")) as LlmReport;
+      r = JSON.parse(fs.readFileSync(file, "utf8")) as LlmReport;
       break;
     } catch {
       r = null;

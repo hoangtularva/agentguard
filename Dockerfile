@@ -22,6 +22,8 @@ COPY --from=build --chown=app:app /app/.next/static ./.next/static
 COPY --from=build --chown=app:app /app/public ./public
 # SQL migrations are applied on first request by src/server/db/client.ts
 COPY --from=build --chown=app:app /app/drizzle ./drizzle
+# Committed real-LLM benchmark reports (shown read-only in the Attack Lab)
+COPY --from=build --chown=app:app /app/docs/results ./docs/results
 USER app
 EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s CMD wget -qO- http://127.0.0.1:3000/ >/dev/null || exit 1

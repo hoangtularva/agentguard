@@ -11,6 +11,9 @@
 | 5 | DEV-driven fixes: actionable argument errors; FP measured on user-requested calls only | unit 47/47 | 8f6eb0f |
 | 6 | UI: approval summary + double-submit ref guard, step headline, sign-out; PG perf test; screenshot script | tsc/lint OK | (next) |
 | 7 | DEV run 2 (after fixes) | FP 37.5%→9.7%, guarded completion 75%→100%, guarded ASR 0% | 078b567 (frozen) |
-| 8 | HOLDOUT (frozen code, seeds 42/43/44) | interrupted at X14 (session ended), resumed 2026-11-20 with --resume; running | b71dee7 (harness only) |
+| 8 | HOLDOUT (frozen code, seeds 42/43/44) | ASR 66.7%→0.0% (CI 0–6%), completion 97.2% both, FP 2/100, unrequested destinations 13→0 executed | 4ff4430 |
 | 9 | Preview screenshots (5) | docs/screenshots/0[1-5]-*.png | (next) |
 | 10 | **Phase 4 plan** (multi-method integration for any codebase) | docs/PHASE4_INTEGRATION_PLAN.md | (next) |
+| 11 | Perf test (real PG16, 50k events) | overview p95 ≈ 40 ms, events ≈ 5 ms → no indexes needed | (this) |
+| 12 | Docker rebuild + e2e on stack | 20/20; e2e keys made unique (persistent DB) | (this) |
+| 13 | Open-source release: README, LICENSE (MIT), SECURITY, CONTRIBUTING, templates, CI, screenshots, case study results, Phase 3 final report | done — **PHASE 3 COMPLETE** | (this) |

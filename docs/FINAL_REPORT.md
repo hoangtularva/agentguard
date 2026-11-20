@@ -116,3 +116,40 @@ Plus the final commit containing this report. Nothing was pushed (no remote).
 1. **Docker stack:** `docker compose up -d` in `agentguard` (open a *new* terminal so Docker is on PATH) → http://localhost:3000. `docker compose down` keeps the data volume; `down -v` deletes it.
 2. **To use Ollama again later:** `D:\AI Master\_tools\ollama\ollama.exe serve` (set `OLLAMA_MODELS=D:\AI Master\_tools\ollama-models` first).
 3. Optional: an Anthropic key for `npm run bench:llm -- --provider anthropic`.
+
+---
+
+# Phase 3 report — AI security validation & portfolio release (2026-11-20)
+
+**Status: COMPLETE.** Every Phase 3 completion criterion below was verified by a command that was actually run.
+
+| Criterion | Status | Evidence |
+|---|---|---|
+| Real-LLM benchmark ran | ✅ | qwen2.5:3b via Ollama; DEV (2 runs) + HOLDOUT (3 seeds) — `docs/benchmark-llm-v2-*.md`, raw JSON in `docs/results/` |
+| Guarded vs unguarded results | ✅ | HOLDOUT: ASR 66.7% → 0.0% (CI 0–6%), completion 97.2% both, FP 2/100 |
+| Holdout evaluation set | ✅ | `V2_HOLDOUT` (32), run once on frozen commit `078b567` (interrupted once, resumed with `--resume`; `src` unchanged) |
+| Security audit within scope | ✅ | `docs/PHASE3_FINDINGS.md`: 10 findings, CSRF/XSS/SQLi/SSRF/secret/approval checks |
+| No open confirmed Critical/High | ✅ | F1 & F3 (High) fixed/mitigated with regression tests |
+| Regression tests pass | ✅ | Vitest 75/75; Playwright 20/20 (incl. 7 security) |
+| PostgreSQL integration tests pass | ✅ | `npm run test:pg` 12/12 (incl. 50k-event perf test) |
+| UI desktop/mobile | ✅ | Playwright desktop + mobile; screenshots light/dark/mobile in `docs/screenshots/` |
+| README + case study | ✅ | open-source README with screenshots and results; `docs/PORTFOLIO_CASE_STUDY.md` |
+| Reproducible benchmarks | ✅ | config, seeds, model digest, dataset version and frozen commit are recorded in every generated report |
+
+## Verified on the Docker production stack
+`docker compose up --build -d`: db + app healthy, CSP present; **Playwright 20/20 against the stack** (`E2E_BASE_URL=http://localhost:3000`). The Attack Lab shows the committed HOLDOUT report.
+
+## Measured performance (real PostgreSQL 16, 50k audit events)
+Overview p95 ≈ 40 ms (member and approver); events p95 ≈ 5 ms; approvals p95 ≈ 3 ms. The planned indexes (O5) are **not needed** at this scale.
+
+## Phase 3 findings & fixes (summary)
+- **High:** implicit default identity (F1); demo identity switch → approver (F3, gated by `AGENTGUARD_DEMO_AUTH`).
+- **Medium:** IDOR on read models (F4, viewer-scoped queries).
+- **Low:** unbounded body (F5), no CSP (F6), members could run the benchmark (F7), hydration mismatch (F10).
+- **Product/measurement bugs found on DEV:** unhelpful argument errors for models; an oracle that counted hallucinated recipients as legitimate.
+
+## Known limitations
+Small self-authored datasets; one small local model; idealized reviewer; demo identities are not authentication; `script-src 'unsafe-inline'`; PEP and executors share a process; the audit log is not hash-chained (planned O1).
+
+## Next
+Phase 4 — integration with any codebase: [PHASE4_INTEGRATION_PLAN.md](PHASE4_INTEGRATION_PLAN.md).

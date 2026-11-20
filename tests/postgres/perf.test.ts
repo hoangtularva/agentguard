@@ -73,6 +73,7 @@ describe("dashboard query performance (real PostgreSQL, 50k audit events)", () =
       approvalsMember: await time(() => q.listApprovals(member)),
     };
     console.log("PERF_RESULTS", JSON.stringify(r));
+    (await import("node:fs")).writeFileSync(path.resolve(".data/perf-results.json"), JSON.stringify(r, null, 2));
     for (const v of Object.values(r)) expect(v.p95).toBeLessThan(1500);
   });
 });
