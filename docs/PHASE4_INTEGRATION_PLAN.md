@@ -154,9 +154,9 @@ Priority order: M1 → M2/M3 → M4 → M5 → M6 → M7 → M8.
 
 | Step | Scope | Status |
 |---|---|---|
-| P3-close | Finish open Phase 3 items (§0) | in progress (HOLDOUT running) |
+| P3-close | Finish open Phase 3 items (§0) | **done** (b08a9b6, CI green) |
 | P4.1 | Core package + data-driven ToolSpec + Ajv | **done** — packages/core (esbuild ESM + d.ts), shims in src/server/core, demo tools as ToolSpecs, 6 new tests, vitest 75/75, bench 37/37 |
-| P4.1b | Refactor to Ports & Adapters (§8): split PEP into use cases, ports, Drizzle adapters; thin routes; behaviour unchanged | todo |
+| P4.1b | Refactor to Ports & Adapters (§8): split PEP into use cases, ports, Drizzle adapters; thin routes; behaviour unchanged | **done**: pep.ts → facade + use cases (check-tool-call, execute-approved, session, execution), pure policy-input, ports (ToolCatalog, ResourceResolver, ToolRunner, Clock) |
 | P4.2 | Multi-tenant schema + migration + seed | todo |
 | P4.3 | `/v1` API + API keys + decision tokens + OpenAPI | todo |
 | P4.4 | TS SDK + Python SDK | todo |

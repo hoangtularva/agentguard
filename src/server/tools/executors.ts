@@ -9,30 +9,17 @@
  */
 import { digest, redactString } from "@/server/core/redact";
 import type { Corpus, CorpusItem } from "@/server/core/types";
+import type { ExecResult, SandboxEffect } from "@/server/enforcement/types";
 
 export type { Corpus };
 
-export interface SandboxEffect {
-  tool: string;
-  destination: string;
-  summary: Record<string, unknown>;
-}
+export type { ExecResult, SandboxEffect };
 
 export interface ToolExecContext {
   sessionId: string;
   toolCallId: string;
   corpus: Corpus;
   recordEffect: (effect: SandboxEffect) => Promise<void>;
-}
-
-export interface ExecResult {
-  ok: boolean;
-  /** Text returned to the agent (becomes an UNTRUSTED provenance source). */
-  output: string;
-  /** Redacted summary for audit and UI. */
-  summary: Record<string, unknown>;
-  /** Corpus items whose content entered the agent context. */
-  readItems: CorpusItem[];
 }
 
 type Executor = (args: Record<string, unknown>, ctx: ToolExecContext) => Promise<ExecResult>;
