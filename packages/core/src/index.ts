@@ -7,3 +7,5 @@ export * from "./provenance";
 export * from "./redact";
 export * from "./approval-binding";
 export * from "./tool-spec";
+export * from "./decision-token";
+export * from "./starter-policy";

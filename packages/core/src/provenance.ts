@@ -94,3 +94,14 @@ export function extractDestinations(text: string): string[] {
   const urls = text.match(/https:\/\/[^\s"'<>)]+/gi) ?? [];
   return [...new Set([...emails, ...urls].map((v) => normalizeValue(v.replace(/[.,;:]+$/, ""))))];
 }
+
+/**
+ * Privacy-preserving fingerprints of content: the normalized emails and http(s) URLs it
+ * contains. Destination provenance only needs these values, so external apps can register
+ * sources without sending the content itself.
+ */
+export function extractFingerprints(text: string): string[] {
+  const emails = text.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi) ?? [];
+  const urls = text.match(/https?:\/\/[^\s"'<>)]+/gi) ?? [];
+  return [...new Set([...emails, ...urls].map((v) => normalizeValue(v.replace(/[.,;:]+$/, ""))))].sort();
+}

@@ -102,6 +102,10 @@ function conditionHolds(c: Condition, input: PolicyInput): boolean {
       return sensitivityRank(input.dataSensitivity) <= sensitivityRank(c.level);
     case "tool_risk_at_least":
       return riskRank(input.tool.risk) >= riskRank(c.level);
+    case "tool_risk_at_most":
+      return riskRank(input.tool.risk) <= riskRank(c.level);
+    case "tool_kind":
+      return input.tool.kind === c.kind;
     case "untrusted_context":
       return input.untrustedContext === c.value;
     case "signal_present":

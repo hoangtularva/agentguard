@@ -15,6 +15,13 @@
       "when": 1795186390532,
       "tag": "0001_external_apps",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795187496115,
+      "tag": "0002_api_sessions",
+      "breakpoints": true
     }
   ]
 }

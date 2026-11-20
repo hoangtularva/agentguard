@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { extractDestinations, makeSource, normalizeValue } from "@/server/core/provenance";
+import { extractDestinations, extractFingerprints, makeSource, normalizeValue } from "@/server/core/provenance";
 import { MandateSchema, type ProvenanceSource, type UserRole, maxSensitivity } from "@/server/core/types";
 import type { DB } from "@/server/db/client";
 import * as s from "@/server/db/schema";
@@ -54,6 +54,7 @@ export async function startSession(deps: EnforcementDeps, params: StartSessionPa
     planner: params.planner,
     status: "running",
     origin: params.origin ?? "playground",
+    policyId: params.policyId,
   });
   const state: SessionState = {
     id,
@@ -86,6 +87,7 @@ export async function addSource(db: DB, state: SessionState, src: ProvenanceSour
     trust: src.trust,
     label: src.label,
     contentHash: src.contentHash,
+    fingerprints: extractFingerprints(src.content),
     sensitivity: src.sensitivity,
     signals: src.signals,
     relatedToolCallId: src.relatedToolCallId ?? null,

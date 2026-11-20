@@ -134,7 +134,7 @@ Today AgentGuard guards its built-in agent runtime. Making it usable from **any 
 | Method | Status |
 |---|---|
 | `@agentguard/core`: embedded policy engine + `ToolSpec` (JSON Schema) for your own tools | ✅ available (`packages/core`) |
-| HTTP Decision API `/v1` + per-agent API keys + signed decision tokens | 🚧 in progress |
+| HTTP Decision API `/v1` + per-agent API keys + signed decision tokens ([OpenAPI](docs/openapi.json)) | ✅ available (`npm run admin` creates apps/keys) |
 | SDKs: TypeScript `guard()` wrapper, Python `@guarded` decorator | 🚧 planned |
 | Tool-side verifier (tools accept only signed, single-use decisions) | 🚧 planned |
 | MCP gateway (no code changes for MCP clients) | 🚧 planned |

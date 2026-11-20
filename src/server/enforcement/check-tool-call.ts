@@ -4,6 +4,7 @@ import { hashCanonical } from "@/server/core/canonical";
 import { type PolicyDecision, evaluatePolicy } from "@/server/core/policy-engine";
 import type { PolicyRef } from "@/server/core/policy-schema";
 import { redactArgs } from "@/server/core/redact";
+import type { DB } from "@/server/db/client";
 import * as s from "@/server/db/schema";
 import { writeAudit } from "./audit";
 import { runExecution } from "./execution";
@@ -103,7 +104,9 @@ export async function checkToolCall(deps: EnforcementDeps, state: SessionState, 
 
   const result: EnforcementResult = { toolCallId, tool: call.tool, decision, status, provenance: snapshot, evalLatencyMs, totalLatencyMs: 0 };
 
-  if (decision.decision === "ALLOW" && args && tool) {
+  if (decision.decision === "ALLOW" && args && tool && !deps.runner) {
+    Object.assign(result, await authorizeForHost(deps, state, call, toolCallId, args));
+  } else if (decision.decision === "ALLOW" && args && tool) {
     const exec = await runExecution(deps, {
       appId: state.appId,
       sessionId: state.id,
@@ -124,6 +127,38 @@ export async function checkToolCall(deps: EnforcementDeps, state: SessionState, 
 
   result.totalLatencyMs = performance.now() - t0;
   return result;
+}
+
+/**
+ * Decision-only mode: the host app executes. Mark the call "allowed" (it becomes "executed"
+ * when the host reports the result) and hand out a single-use token bound to the arguments.
+ */
+async function authorizeForHost(
+  deps: EnforcementDeps,
+  state: SessionState,
+  call: ProposedToolCall,
+  toolCallId: string,
+  args: Record<string, unknown>,
+) {
+  return deps.db.transaction(async (raw) => {
+    const tx = raw as unknown as DB;
+    await tx.update(s.toolCalls).set({ status: "allowed" }).where(eq(s.toolCalls.id, toolCallId));
+    const token = await deps.tokens?.issue(tx, { appId: state.appId, agentId: call.agentId, toolCallId, tool: call.tool, args });
+    await writeAudit(tx, {
+      type: "tool_call.allowed",
+      appId: state.appId,
+      sessionId: state.id,
+      toolCallId,
+      actorId: call.agentId,
+      decision: "ALLOW",
+      payload: { tool: call.tool, tokenExpiresAt: token?.expiresAt.toISOString() },
+    });
+    return {
+      status: "allowed" as const,
+      decisionToken: token?.token,
+      decisionTokenExpiresAt: token?.expiresAt.toISOString(),
+    };
+  });
 }
 
 /** Create a pending approval whose hash binds the exact call to the current policy version. */

@@ -21,7 +21,8 @@ export interface ProposedToolCall {
   rationale?: string;
 }
 
-export type CallStatus = "blocked" | "pending_approval" | "executed" | "failed";
+/** "allowed": decision-only mode, the host app executes and reports the result. */
+export type CallStatus = "blocked" | "pending_approval" | "allowed" | "executed" | "failed";
 
 export interface ProvenanceSnapshot {
   dataSensitivity: Sensitivity;
@@ -39,6 +40,9 @@ export interface EnforcementResult {
   execSummary?: Record<string, unknown>;
   approvalId?: string;
   approvalExpiresAt?: string;
+  /** Decision-only mode: proof for the tool that this exact call was allowed. */
+  decisionToken?: string;
+  decisionTokenExpiresAt?: string;
   provenance: ProvenanceSnapshot;
   evalLatencyMs: number;
   totalLatencyMs: number;
@@ -76,3 +80,7 @@ export type ApprovalDenyCode =
 export type ApprovalExecutionOutcome =
   | { ok: false; code: ApprovalDenyCode; message: string }
   | { ok: true; replayed: boolean; toolCallId: string; summary: Record<string, unknown>; output?: string; exec?: ExecResult };
+
+export type ApprovalConsumeOutcome =
+  | { ok: false; code: ApprovalDenyCode; message: string }
+  | { ok: true; toolCallId: string; decisionToken?: string; expiresAt?: string };

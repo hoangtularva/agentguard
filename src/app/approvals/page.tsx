@@ -14,6 +14,7 @@ export default async function ApprovalsPage() {
     const expired = a.status === "pending" || a.status === "approved" ? Boolean(expiredNow) : a.status === "expired";
     return {
       id: a.id,
+      app: a.appId,
       status: expired && (a.status === "pending" || a.status === "approved") ? "expired" : a.status,
       tool: call.tool,
       // Exact arguments are shown only while pending (they are what the human approves).

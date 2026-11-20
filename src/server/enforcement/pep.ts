@@ -56,6 +56,7 @@ export class EnforcementPoint {
       runner: mockRunner(opts.corpus),
       resolvePolicy: opts.resolvePolicy,
       clock: { now: opts.now ?? (() => new Date()) },
+      appId: "demo",
     };
   }
 

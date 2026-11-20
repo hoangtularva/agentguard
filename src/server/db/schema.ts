@@ -160,6 +160,8 @@ export const agentSessions = pgTable("agent_sessions", {
   status: text("status", { enum: ["running", "awaiting_approval", "completed", "failed"] }).notNull(),
   finalMessage: text("final_message"),
   origin: text("origin", { enum: ["playground", "benchmark", "api"] }).notNull().default("playground"),
+  /** Policy bound at session start (null for sessions created before migration 0002). */
+  policyId: text("policy_id"),
   createdAt: createdAt(),
 });
 
@@ -173,6 +175,8 @@ export const provenanceSources = pgTable(
     label: text("label").notNull(),
     /** Content hash only — content itself is not persisted in provenance records. */
     contentHash: text("content_hash").notNull(),
+    /** Normalized emails/URLs found in the content (or sent by a privacy-mode client); used to rebuild provenance across requests. */
+    fingerprints: jsonb("fingerprints").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
     sensitivity: text("sensitivity").notNull(),
     signals: jsonb("signals").$type<string[]>().notNull(),
     relatedToolCallId: text("related_tool_call_id"),
@@ -205,7 +209,7 @@ export const toolCalls = pgTable(
     policyVersion: integer("policy_version").notNull(),
     provenance: jsonb("provenance").notNull(),
     status: text("status", {
-      enum: ["blocked", "pending_approval", "executed", "rejected", "expired", "failed"],
+      enum: ["blocked", "pending_approval", "allowed", "executed", "rejected", "expired", "failed"],
     }).notNull(),
     rationale: text("rationale"),
     evalLatencyMs: real("eval_latency_ms").notNull(),
@@ -226,7 +230,7 @@ export const approvals = pgTable(
     bindingHash: text("binding_hash").notNull(),
     policyId: text("policy_id").notNull(),
     policyVersion: integer("policy_version").notNull(),
-    status: text("status", { enum: ["pending", "approved", "rejected", "expired", "executed", "invalidated"] }).notNull(),
+    status: text("status", { enum: ["pending", "approved", "rejected", "expired", "executed", "consumed", "invalidated"] }).notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true, mode: "date" }).notNull(),
     decidedBy: text("decided_by"),
     decidedAt: timestamp("decided_at", { withTimezone: true, mode: "date" }),

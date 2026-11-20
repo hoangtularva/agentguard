@@ -10,6 +10,11 @@ import { DEFAULT_POLICY_ID, DEMO_AGENT_ID } from "@/server/db/seed";
 import { decideApproval } from "@/server/enforcement/approvals";
 import { EnforcementPoint } from "@/server/enforcement/pep";
 import { createPolicyVersion, dbPolicyResolver } from "@/server/enforcement/policy-store";
+import { authenticateApiKey, createApiKey, createApp } from "@/server/integration/apps";
+import * as v1 from "@/server/integration/service";
+import journal from "../../drizzle/meta/_journal.json";
+
+const MIGRATION_COUNT = journal.entries.length;
 
 /**
  * Integration suite against a REAL PostgreSQL 16 server process (official binaries
@@ -85,7 +90,7 @@ describe("real PostgreSQL 16", () => {
     expect((t as unknown as { rows: { n: number }[] }).rows[0].n).toBe(18); // 13 (0000_init) + 5 (0001_external_apps)
     const again = await createDatabase({ url: URL }); // re-run migrate + seed
     const m = await again.execute(sql`select count(*)::int as n from drizzle.__drizzle_migrations`);
-    expect((m as unknown as { rows: { n: number }[] }).rows[0].n).toBe(2); // one row per migration file, not re-applied
+    expect((m as unknown as { rows: { n: number }[] }).rows[0].n).toBe(MIGRATION_COUNT); // one row per migration file, not re-applied
     await (again as unknown as { $client: { end(): Promise<void> } }).$client.end();
   });
 
@@ -215,5 +220,37 @@ describe("real PostgreSQL 16", () => {
 
   it("fails closed when the database is unreachable", async () => {
     await expect(createDatabase({ url: `postgres://agentguard:x@127.0.0.1:${PORT + 1}/nope` })).rejects.toThrow();
+  });
+  it("/v1: concurrent consume of one approval and concurrent token verification each succeed exactly once", async () => {
+    await createApp(db, { id: "pgapp", name: "PG app", createdBy: "u_bob" });
+    const { key } = await createApiKey(db, { appId: "pgapp", name: "k", scopes: ["check", "verify", "admin"], createdBy: "u_bob" });
+    const principal = (await authenticateApiKey(db, `Bearer ${key}`))!;
+    await v1.putTool(db, principal, "notify", {
+      name: "notify",
+      kind: "sink",
+      risk: "high",
+      destinationArg: "to",
+      inputSchema: { type: "object", properties: { to: { type: "string" } }, required: ["to"] },
+    });
+    await v1.putAgent(db, principal, "bot", { name: "Bot", allowedTools: ["notify"], active: true });
+    const { sessionId } = await v1.openSession(db, principal, {
+      userRef: "u1",
+      agentId: "bot",
+      prompt: "Notify ops@pg.example",
+      mandate: { tools: ["notify"], resources: [], destinations: [] },
+    });
+    const r = await v1.check(db, principal, { sessionId, agentId: "bot", tool: "notify", args: { to: "ops@pg.example" } });
+    expect(r.decision).toBe("REVIEW"); // high-risk sink
+    await decideApproval(db, { approvalId: r.approvalId!, actorId: "u_bob", decision: "approve" });
+
+    const consumed = await Promise.allSettled(Array.from({ length: 10 }, () => v1.consume(db, principal, r.approvalId!)));
+    const wins = consumed.filter((x) => x.status === "fulfilled") as PromiseFulfilledResult<{ decisionToken?: string }>[];
+    expect(wins.length).toBe(1);
+    const token = wins[0].value.decisionToken!;
+    const verified = await Promise.all(
+      Array.from({ length: 10 }, () => v1.verifyToken(db, principal, { token, tool: "notify", args: { to: "ops@pg.example" }, consume: true })),
+    );
+    expect(verified.filter((x) => x.valid).length).toBe(1);
+    expect(verified.filter((x) => x.code === "REPLAYED").length).toBe(9);
   });
 });
