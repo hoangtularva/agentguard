@@ -1,0 +1,61 @@
+# AgentGuard as a SIDECAR next to your own agent app.
+#
+#   docker compose -f docker-compose.sidecar.yml up -d --build
+#
+# Your agent services join the `agentguard` network and call http://agentguard:3000/v1
+# with an API key. Create the app and keys in the UI (http://127.0.0.1:3001, sign in as
+# an approver, "Apps & API keys").
+#
+# Add to YOUR compose file:
+#   services:
+#     my-agent:
+#       environment:
+#         AGENTGUARD_URL: http://agentguard:3000
+#         AGENTGUARD_API_KEY: ${AGENTGUARD_API_KEY}
+#       networks: [default, agentguard]
+#   networks:
+#     agentguard:
+#       external: true
+#       name: agentguard
+#
+# Security notes
+#  - /v1 is reachable only on the private `agentguard` network; nothing is published
+#    except the approval UI, bound to 127.0.0.1.
+#  - The UI uses DEMO identities (no IdP). Keep it on localhost / behind your SSO proxy.
+#  - Set AUTH_SECRET once and keep it: decision-token keys are derived from it.
+services:
+  agentguard-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: agentguard
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-agentguard-sidecar-local}
+      POSTGRES_DB: agentguard
+    volumes:
+      - agentguard-sidecar-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agentguard -d agentguard"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [internal]
+
+  agentguard:
+    build: .
+    depends_on:
+      agentguard-db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://agentguard:${POSTGRES_PASSWORD:-agentguard-sidecar-local}@agentguard-db:5432/agentguard
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET (>=16 chars) and keep it stable}
+      AGENTGUARD_DEMO_AUTH: ${AGENTGUARD_DEMO_AUTH:-1}
+    ports:
+      - "127.0.0.1:${AGENTGUARD_UI_PORT:-3001}:3000"
+    networks: [internal, agentguard]
+
+networks:
+  internal: {}
+  agentguard:
+    name: agentguard
+
+volumes:
+  agentguard-sidecar-pg:

@@ -1,21 +1,6 @@
 "use client";
 
-import {
-  Activity,
-  Bot,
-  ChevronsLeft,
-  ChevronsRight,
-  FlaskConical,
-  Inbox,
-  LayoutDashboard,
-  LogOut,
-  Menu,
-  Moon,
-  ScrollText,
-  ShieldHalf,
-  Sun,
-  UserRound,
-} from "lucide-react";
+import { Activity, Bot, ChevronsLeft, ChevronsRight, FlaskConical, Inbox, LayoutDashboard, LogOut, Menu, Moon, Plug, ScrollText, ShieldHalf, Sun, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -30,6 +15,7 @@ const NAV = [
   { href: "/approvals", label: "Approval Inbox", icon: Inbox, badge: "pending" as const },
   { href: "/events", label: "Security Events", icon: Activity },
   { href: "/policies", label: "Policy Studio", icon: ScrollText },
+  { href: "/apps", label: "Apps & API keys", icon: Plug },
 ];
 
 type User = { id: string; name: string; role: string };

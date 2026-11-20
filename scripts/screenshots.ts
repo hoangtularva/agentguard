@@ -1,7 +1,7 @@
 /**
  * Portfolio screenshots (reproducible). Requires a running app:
  *   npm run dev            (or the Docker stack)
- *   npx tsx scripts/screenshots.ts [baseURL]
+ *   npx tsx scripts/screenshots.ts [baseURL]        (ONLY=name1,name2 to retake some)
  * Writes docs/screenshots/*.png. Uses the deterministic simulated agent so images are stable.
  */
 import fs from "node:fs";
@@ -16,7 +16,10 @@ async function signIn(page: Page, userId: string) {
   if (!r.ok()) throw new Error(`sign-in failed: ${r.status()}`);
 }
 
+const ONLY = process.env.ONLY?.split(",");
+
 async function shot(browser: Browser, name: string, opts: { user: string; url: string; scheme: "light" | "dark"; mobile?: boolean; act?: (p: Page) => Promise<void> }) {
+  if (ONLY && !ONLY.includes(name)) return;
   const ctx = await browser.newContext({
     ...(opts.mobile ? devices["Pixel 7"] : { viewport: { width: 1440, height: 900 } }),
     colorScheme: opts.scheme,
@@ -58,6 +61,7 @@ async function main() {
     await p.context().clearCookies();
     await p.reload({ waitUntil: "networkidle" });
   } });
+  await shot(browser, "apps-dark", { user: "u_bob", url: "/apps", scheme: "dark" });
   await shot(browser, "mobile-playground-dark", { user: "u_alice", url: "/playground", scheme: "dark", mobile: true });
   await browser.close();
 }

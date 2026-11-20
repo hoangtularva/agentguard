@@ -71,6 +71,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
                     <span className={cn("size-2 rounded-full", e.severity === "critical" ? "bg-block" : e.severity === "warning" ? "bg-review" : "bg-muted-foreground/40")} aria-label={e.severity} />
                     <span className="font-mono text-xs">{e.type}</span>
                     {e.decision && <DecisionBadge decision={e.decision} />}
+                    {e.appId !== "demo" && <Pill tone="brand">app {e.appId}</Pill>}
                     {(e.reasonCodes as string[]).filter((r) => r !== "RULE_MATCHED").slice(0, 2).map((r) => <Pill key={r}>{r}</Pill>)}
                     <span className="ml-auto text-xs text-muted-foreground tabular">{timeAgo(e.createdAt)}</span>
                   </Link>

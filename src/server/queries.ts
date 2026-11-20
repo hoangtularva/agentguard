@@ -196,3 +196,38 @@ export async function listUsers() {
   const db = await getDb();
   return db.select({ id: s.users.id, name: s.users.name, role: s.users.role }).from(s.users).orderBy(s.users.id);
 }
+
+/** Apps & API keys overview (approver/admin only; callers must check the role). Key hashes never leave the server. */
+export async function listApps() {
+  const db = await getDb();
+  const apps = await db.select().from(s.apps).orderBy(s.apps.createdAt);
+  const keys = await db
+    .select({
+      id: s.apiKeys.id,
+      appId: s.apiKeys.appId,
+      name: s.apiKeys.name,
+      prefix: s.apiKeys.prefix,
+      scopes: s.apiKeys.scopes,
+      agentId: s.apiKeys.agentId,
+      createdAt: s.apiKeys.createdAt,
+      lastUsedAt: s.apiKeys.lastUsedAt,
+      revokedAt: s.apiKeys.revokedAt,
+    })
+    .from(s.apiKeys)
+    .orderBy(desc(s.apiKeys.createdAt));
+  const tools = await db
+    .select({ appId: s.toolSpecs.appId, name: s.toolSpecs.name, version: s.toolSpecs.version, spec: s.toolSpecs.spec })
+    .from(s.toolSpecs)
+    .where(eq(s.toolSpecs.active, true));
+  const agents = await db.select({ id: s.agents.id, appId: s.agents.appId, name: s.agents.name, allowedTools: s.agents.allowedTools, active: s.agents.active }).from(s.agents);
+  const calls = await db.select({ appId: s.toolCalls.appId, n: count() }).from(s.toolCalls).groupBy(s.toolCalls.appId);
+  return apps
+    .filter((a) => a.id !== "demo")
+    .map((a) => ({
+      ...a,
+      keys: keys.filter((k) => k.appId === a.id),
+      tools: tools.filter((t) => t.appId === a.id),
+      agents: agents.filter((g) => g.appId === a.id).map((g) => ({ ...g, ref: g.id.slice(a.id.length + 1) })),
+      calls: calls.find((c) => c.appId === a.id)?.n ?? 0,
+    }));
+}

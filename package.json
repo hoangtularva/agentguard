@@ -17,6 +17,7 @@
     "openapi": "tsx scripts/openapi.ts",
     "admin": "tsx scripts/admin.ts",
     "examples:setup": "tsx examples/setup.ts",
+    "package": "node scripts/package.mjs",
     "bench:llm": "tsx scripts/bench-llm.ts",
     "test:pg": "vitest run --config vitest.pg.config.ts"
   },
