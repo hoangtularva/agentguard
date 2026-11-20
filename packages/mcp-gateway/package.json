@@ -1,0 +1,17 @@
+{
+  "name": "@agentguard/mcp-gateway",
+  "version": "0.1.0",
+  "description": "MCP proxy that checks every tools/call with AgentGuard before it reaches the upstream MCP server.",
+  "license": "MIT",
+  "type": "module",
+  "bin": { "agentguard-mcp": "./dist/cli.js" },
+  "main": "./dist/gateway.js",
+  "files": ["dist", "README.md", "agentguard-mcp.example.json"],
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "esbuild src/cli.ts src/gateway.ts --bundle --platform=node --format=esm --target=node20 --external:@modelcontextprotocol/sdk --outdir=dist"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2"
+  }
+}

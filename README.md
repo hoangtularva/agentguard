@@ -137,7 +137,7 @@ Today AgentGuard guards its built-in agent runtime. Making it usable from **any 
 | HTTP Decision API `/v1` + per-agent API keys + signed decision tokens ([OpenAPI](docs/openapi.json)) | ✅ available (`npm run admin` creates apps/keys) |
 | SDKs: [TypeScript](packages/sdk-ts) `guard()` / `guardTools()`, [Python](sdk/python) `guard()` / `@guarded` | ✅ available (zero dependencies, fail-closed) |
 | Tool-side verifier (tools accept only signed, single-use decisions) | ✅ available (`DecisionVerifier`, `TokenVerifier`) |
-| MCP gateway (no code changes for MCP clients) | 🚧 planned |
+| [MCP gateway](packages/mcp-gateway) (no code changes for MCP clients or servers) | ✅ available |
 | Sidecar container, CLI | 🚧 planned |
 
 ## 🧪 Tests

@@ -161,7 +161,7 @@ Priority order: M1 → M2/M3 → M4 → M5 → M6 → M7 → M8.
 | P4.3 | `/v1` API + API keys + decision tokens + OpenAPI | **done**: /v1 (sessions, sources, check, approvals+consume, calls/result, tokens/verify, tools, agents, health, openapi.json), API keys (sha256, scopes, agent-bound, revoke), HMAC decision tokens, starter policy, rate limit, admin CLI; 6 API + 5 core + 1 real-PG concurrency tests |
 | P4.4 | TS SDK + Python SDK | **done**: packages/sdk-ts (zero-dep ESM+CJS+d.ts, guard/guardTools, waitForApproval, fail-closed, privacy mode) and sdk/python (urllib, guard/@guarded, offline token verify); multi-agent sessions (migration 0003); SDK e2e over HTTP + TS↔Python conformance |
 | P4.5 | Tool-side verifiers | **done**: TS `DecisionVerifier` (offline key + per-process replay cache, or online /v1/tokens/verify; `protect()` for fetch handlers, fail-closed) and Python `TokenVerifier.protect`; `admin token-key`; tests |
-| P4.6 | MCP gateway | todo |
+| P4.6 | MCP gateway | **done**: packages/mcp-gateway (McpGateway + stdio CLI, stdio/HTTP upstream, env: secrets, tool registration from inputSchema + role, REVIEW wait); in-process MCP test (hidden tools, token in _meta, blocked exfil, scope, review) |
 | P4.7 | Examples (TS, Python, MCP) + automated proof | todo |
 | P4.8 | Packaging (tarballs, wheel, sidecar) + Apps/API keys UI + INTEGRATION_GUIDE | todo |
 | P4.9 | Security review of new surface + latency + docs | todo |
