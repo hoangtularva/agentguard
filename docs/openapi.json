@@ -313,7 +313,8 @@
                       "document",
                       "email",
                       "web",
-                      "tool_output"
+                      "tool_output",
+                      "agent_message"
                     ]
                   },
                   "label": {
@@ -452,6 +453,10 @@
                   "rationale": {
                     "type": "string",
                     "maxLength": 1000
+                  },
+                  "parentCallId": {
+                    "type": "string",
+                    "maxLength": 64
                   }
                 },
                 "required": [

@@ -13,7 +13,7 @@ session = ag.start_session(
 )
 
 read_inbox = session.guard("read_inbox", mail.list)                    # runs only on ALLOW
-send_email = session.as_agent("writer").guard("send_email", mail.send) # sub-agent, same provenance
+send_email = session.handoff("writer", notes).guard("send_email", mail.send)  # notes become untrusted provenance
 
 read_inbox(folder="inbox")          # output registered as untrusted provenance (fingerprints only)
 try:

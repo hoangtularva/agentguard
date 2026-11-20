@@ -13,7 +13,7 @@ import { detectInjectionSignals, extractFingerprints } from "../../core/src/prov
 
 export type Decision = "ALLOW" | "REVIEW" | "BLOCK";
 export type Sensitivity = "public" | "internal" | "confidential" | "restricted";
-export type SourceType = "document" | "email" | "web" | "tool_output";
+export type SourceType = "document" | "email" | "web" | "tool_output" | "agent_message";
 
 export interface Reason {
   code: string;
@@ -96,6 +96,8 @@ export interface GuardOptions {
   /** Register the tool's output as untrusted provenance for later calls. Default true. */
   reportOutput?: boolean;
   rationale?: string;
+  /** Multi-agent: the call whose agent delegated this step (recorded in the audit trail). */
+  parentCallId?: string;
 }
 
 export interface ToolContext {
@@ -190,8 +192,17 @@ export class Session {
     });
   }
 
-  check(tool: string, args: Record<string, unknown>, rationale?: string): Promise<CheckResult> {
-    return this.ag.request<CheckResult>("POST", "/v1/check", { sessionId: this.id, agentId: this.agentId, tool, args, rationale });
+  check(tool: string, args: Record<string, unknown>, rationale?: string, parentCallId?: string): Promise<CheckResult> {
+    return this.ag.request<CheckResult>("POST", "/v1/check", { sessionId: this.id, agentId: this.agentId, tool, args, rationale, parentCallId });
+  }
+
+  /**
+   * Multi-agent hand-off: register what this agent tells `toAgent` as UNTRUSTED provenance (it may
+   * carry what this agent read), then continue as `toAgent` in the same session.
+   */
+  async handoff(toAgent: string, message: string): Promise<Session> {
+    await this.addSource({ type: "agent_message", label: `${this.agentId} → ${toAgent}`, content: message });
+    return this.as(toAgent);
   }
 
   /** Poll until a human decides. Resolves with a decision token once approved (and consumed). */
@@ -222,7 +233,7 @@ export class Session {
     return async (args: Args): Promise<R> => {
       let r: CheckResult;
       try {
-        r = await this.check(tool, args, o.rationale);
+        r = await this.check(tool, args, o.rationale, o.parentCallId);
       } catch (err) {
         const unavailable = !(err instanceof HttpError) || err.status >= 500 || err.status === 429;
         if (unavailable && o.readOnly && this.ag.failMode === "allow-reads") return fn(args, { callId: "unchecked" });

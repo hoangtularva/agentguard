@@ -19,7 +19,8 @@ export type Decision = (typeof DECISIONS)[number];
 export const TRUST_LEVELS = ["trusted_user", "system", "untrusted_external", "model_generated"] as const;
 export type TrustLevel = (typeof TRUST_LEVELS)[number];
 
-export const SOURCE_TYPES = ["user_prompt", "system", "document", "email", "web", "tool_output", "model"] as const;
+/** `agent_message`: text one agent hands to another (multi-agent). Untrusted: it may carry what the sender read. */
+export const SOURCE_TYPES = ["user_prompt", "system", "document", "email", "web", "tool_output", "agent_message", "model"] as const;
 export type SourceType = (typeof SOURCE_TYPES)[number];
 
 export const USER_ROLES = ["member", "approver", "admin"] as const;

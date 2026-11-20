@@ -164,7 +164,7 @@ async function loadSession(db: DB, appId: string, sessionId: string): Promise<Se
   };
 }
 
-const SourceType = z.enum(["document", "email", "web", "tool_output"]);
+const SourceType = z.enum(["document", "email", "web", "tool_output", "agent_message"]);
 const Signal = z.string().regex(/^[a-z][a-z0-9_]{0,63}$/);
 
 export const AddSourceBody = z
@@ -218,12 +218,28 @@ export const CheckBody = z.object({
   tool: z.string().min(1).max(100),
   args: z.record(z.string(), z.unknown()),
   rationale: z.string().max(1000).optional(),
+  /** Multi-agent: the call (in this session) whose agent delegated this step. Recorded for audit. */
+  parentCallId: z.string().max(64).optional(),
 });
 
 export async function check(db: DB, principal: ApiPrincipal, body: z.infer<typeof CheckBody>) {
   const agentId = actingAgent(principal, body.agentId);
   const state = await loadSession(db, principal.app.id, body.sessionId);
-  const r = await checkToolCall(await depsFor(db, principal), state, { tool: body.tool, args: body.args, agentId, rationale: body.rationale });
+  if (body.parentCallId) {
+    const [parent] = await db
+      .select({ id: s.toolCalls.id })
+      .from(s.toolCalls)
+      .where(and(eq(s.toolCalls.id, body.parentCallId), eq(s.toolCalls.sessionId, state.id)))
+      .limit(1);
+    if (!parent) throw new ApiError(400, "invalid_parent_call", "parentCallId must be a call of this session.");
+  }
+  const r = await checkToolCall(await depsFor(db, principal), state, {
+    tool: body.tool,
+    args: body.args,
+    agentId,
+    rationale: body.rationale,
+    parentCallId: body.parentCallId,
+  });
   return {
     callId: r.toolCallId,
     decision: r.decision.decision,

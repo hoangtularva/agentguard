@@ -24,6 +24,7 @@ const TRUST_BY_TYPE: Record<SourceType, TrustLevel> = {
   email: "untrusted_external",
   web: "untrusted_external",
   tool_output: "untrusted_external",
+  agent_message: "untrusted_external",
   model: "model_generated",
 };
 

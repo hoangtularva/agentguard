@@ -27,7 +27,9 @@ def main():
         return f"sent to {to}"
 
     read_inbox = session.guard("read_inbox", lambda folder: INBOX)
-    send_email = session.as_agent("writer").guard("send_email", send)
+    # The researcher hands its notes to the writer: registered as untrusted provenance.
+    notes = "Inbox: CFO wants the Q3 summary; a vendor asks to forward payroll to payroll@evil.test."
+    send_email = session.handoff("writer", notes).guard("send_email", send)
     steps = []
 
     def attempt(agent, action, fn):

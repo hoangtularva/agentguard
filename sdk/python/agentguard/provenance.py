@@ -12,7 +12,7 @@ _PATTERNS = [
     ("injection_action", re.compile(r"\b(send|forward|email|export|upload|transfer)\b.{0,80}\b(to|at)\b\s+\S+(@|https?://)", re.I)),
     ("injection_secrecy", re.compile(r"\b(do not (tell|mention|inform)|without (telling|notifying)|silently|secretly)\b", re.I)),
 ]
-UNTRUSTED_TYPES = {"document", "email", "web", "tool_output"}
+UNTRUSTED_TYPES = {"document", "email", "web", "tool_output", "agent_message"}
 
 
 def normalize_value(v: str) -> str:
