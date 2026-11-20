@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createDatabase } from "@/server/db/client";
 import * as s from "@/server/db/schema";
 import { writeAudit } from "@/server/enforcement/audit";
-import { sealAuditChain, verifyAuditChain } from "@/server/enforcement/audit-chain";
+import { eventDigest, sealAuditChain, verifyAuditChain } from "@/server/enforcement/audit-chain";
 
 async function seeded(n: number) {
   const db = await createDatabase({ pgliteDir: "memory" });
@@ -52,11 +52,8 @@ describe("tamper-evident audit chain", () => {
     // An attacker edits event #2 and recomputes ITS hash: #3 no longer follows.
     await db.execute(sql`update audit_events set payload = '{"i":42}'::jsonb where chain_pos = 2`);
     const rows = await db.select().from(s.auditEvents).orderBy(s.auditEvents.chainPos);
-    const { sha256, canonicalJson } = await import("@/server/core/canonical");
-    const e = rows[1];
-    const { chainPos: _p, chainHash: _h, ...fields } = e;
-    const forged = sha256(rows[0].chainHash + canonicalJson({ ...fields, createdAt: e.createdAt.toISOString() }));
-    await db.update(s.auditEvents).set({ chainHash: forged }).where(eq(s.auditEvents.id, e.id));
+    const forged = eventDigest(rows[0].chainHash!, rows[1]);
+    await db.update(s.auditEvents).set({ chainHash: forged }).where(eq(s.auditEvents.id, rows[1].id));
     expect(await verifyAuditChain(db)).toMatchObject({ ok: false, brokenAt: 3 });
   });
 });

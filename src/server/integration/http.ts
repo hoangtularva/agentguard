@@ -6,16 +6,16 @@ import { json, parseBody } from "@/server/http";
 import { type ApiPrincipal, type ApiScope, authenticateApiKey } from "./apps";
 import { ApiError } from "./service";
 
-/** Per-key token bucket (in-process): sustained RATE req/s (AGENTGUARD_V1_RATE, default 50), bursts up to 2×RATE. */
-const RATE = Math.max(1, Number(process.env.AGENTGUARD_V1_RATE) || 50);
-const BURST = RATE * 2;
+/** Per-key token bucket (in-process): sustained rate req/s (AGENTGUARD_V1_RATE, default 50), bursts up to 2× the rate. */
+const rate = () => Math.max(1, Number(process.env.AGENTGUARD_V1_RATE) || 50);
 const g = globalThis as unknown as { __agBuckets?: Map<string, { tokens: number; at: number }> };
 
 function take(keyId: string): boolean {
   g.__agBuckets ??= new Map();
   const now = Date.now();
-  const b = g.__agBuckets.get(keyId) ?? { tokens: BURST, at: now };
-  b.tokens = Math.min(BURST, b.tokens + ((now - b.at) / 1000) * RATE);
+  const burst = rate() * 2;
+  const b = g.__agBuckets.get(keyId) ?? { tokens: burst, at: now };
+  b.tokens = Math.min(burst, b.tokens + ((now - b.at) / 1000) * rate());
   b.at = now;
   const ok = b.tokens >= 1;
   if (ok) b.tokens -= 1;
@@ -38,7 +38,7 @@ export function v1(scope: ApiScope, handler: (ctx: Ctx) => Promise<unknown>) {
       if (!principal) return json({ error: "unauthenticated", message: "Send a valid API key: Authorization: Bearer agk_…" }, 401);
       if (!principal.scopes.includes(scope)) return json({ error: "forbidden", message: `This key lacks the "${scope}" scope.` }, 403);
       if (!take(principal.keyId)) {
-        const res = json({ error: "rate_limited", message: `Limit: ${RATE} requests/s per key.` }, 429);
+        const res = json({ error: "rate_limited", message: `Limit: ${rate()} requests/s per key.` }, 429);
         res.headers.set("retry-after", "1");
         return res;
       }

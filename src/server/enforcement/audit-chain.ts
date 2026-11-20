@@ -20,8 +20,10 @@ const LOCK_ID = 7_424_242; // advisory lock key reserved for the sealer
 const GENESIS = "0".repeat(64);
 
 /** The exact fields covered by the chain (everything except the chain columns themselves). */
-function eventDigest(prev: string, e: Event): string {
-  const { chainPos: _p, chainHash: _h, ...fields } = e;
+export function eventDigest(prev: string, e: Event): string {
+  const fields: Partial<Event> = { ...e };
+  delete fields.chainPos;
+  delete fields.chainHash;
   return sha256(prev + canonicalJson({ ...fields, createdAt: e.createdAt.toISOString() }));
 }
 
