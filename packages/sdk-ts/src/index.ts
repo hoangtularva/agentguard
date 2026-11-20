@@ -260,3 +260,4 @@ export function guardTools<T extends Record<string, ToolFn<unknown>>>(
 }
 
 export { verifyDecisionToken } from "../../core/src/decision-token";
+export { DecisionVerifier, type VerifierOptions, type VerifyResult } from "./verify";
