@@ -236,6 +236,7 @@ describe("real PostgreSQL 16", () => {
     const { sessionId } = await v1.openSession(db, principal, {
       userRef: "u1",
       agentId: "bot",
+      agents: [],
       prompt: "Notify ops@pg.example",
       mandate: { tools: ["notify"], resources: [], destinations: [] },
     });

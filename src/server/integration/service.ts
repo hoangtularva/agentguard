@@ -94,6 +94,8 @@ async function externalUser(db: DB, appId: string, userRef: string): Promise<str
 export const OpenSessionBody = z.object({
   userRef: Ref,
   agentId: Ref,
+  /** Other agents of this app that may act in the session (sub-agents, hand-offs). */
+  agents: z.array(Ref).max(20).default([]),
   /** The user's own request: the trusted channel. Destinations in it are authorized. */
   prompt: z.string().min(1).max(20_000),
   mandate: z.object({
@@ -112,6 +114,7 @@ export async function openSession(db: DB, principal: ApiPrincipal, body: z.infer
       appId: principal.app.id,
       userId,
       agentId,
+      agentIds: body.agents.map((a) => agentKey(principal.app.id, a)),
       prompt: body.prompt,
       planner: "external",
       origin: "api",
