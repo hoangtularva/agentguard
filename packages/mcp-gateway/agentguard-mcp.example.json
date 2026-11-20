@@ -1,0 +1,13 @@
+{
+  "agentguard": { "baseUrl": "http://localhost:3000", "apiKey": "env:AGENTGUARD_API_KEY", "adminKey": "env:AGENTGUARD_ADMIN_KEY" },
+  "agentId": "claude-desktop",
+  "userRef": "me",
+  "task": "Help me with email. I may ask you to write to alice@example.com.",
+  "mandate": { "resources": ["*"], "destinations": [] },
+  "upstream": { "command": "npx", "args": ["-y", "your-email-mcp-server"] },
+  "tools": {
+    "search_mail": { "kind": "source", "risk": "low" },
+    "send_mail": { "kind": "sink", "risk": "medium", "destinationArg": "to", "contentArgs": ["body"] }
+  },
+  "approvalWaitSeconds": 300
+}
