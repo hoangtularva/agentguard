@@ -35,7 +35,7 @@ Telling the model to "ignore instructions in documents" doesn't count as a contr
 - **Audit log** with redaction (content hashed, secrets masked), viewer-scoped dashboards, CSRF/CSP/body limits.
 - **Bring any model:** deterministic simulated agent, **Ollama** (free, local), or **Anthropic**.
 - **Reproducible benchmarks:** a simulated suite (37 scenarios) plus a **real-LLM** suite with dev/holdout splits, multiple seeds and confidence intervals.
-- **Tools of any app** can be described as JSON-Schema `ToolSpec`s (`@agentguard/core`). External SDKs, the `/v1` API and the MCP gateway are [in progress](docs/PHASE4_INTEGRATION_PLAN.md).
+- **Guard agents in any codebase:** `/v1` decision API, zero-dependency **TypeScript and Python SDKs**, an **MCP gateway** (no code changes), and **tool-side verifiers** so tools refuse calls the guard didn't allow. Multi-agent sessions keep one provenance record across hand-offs.
 
 ## 📸 Screenshots
 
@@ -46,6 +46,8 @@ Telling the model to "ignore instructions in documents" doesn't count as a contr
 | <img src="docs/screenshots/overview-dark.png" width="440"> | <img src="docs/screenshots/attack-lab-dark.png" width="440"> |
 | **Policy Studio** | **Security Events** |
 | <img src="docs/screenshots/policy-studio-light.png" width="440"> | <img src="docs/screenshots/events-dark.png" width="440"> |
+| **Apps & API keys** (external agents) | |
+| <img src="docs/screenshots/apps-dark.png" width="440"> | |
 
 <p align="center"><img src="docs/screenshots/mobile-playground-dark.png" width="240" alt="Mobile layout"> &nbsp; <img src="docs/screenshots/sign-in-light.png" width="420" alt="Demo sign-in"></p>
 
@@ -129,7 +131,7 @@ Details: [architecture](docs/architecture.md) · [threat model](docs/threat-mode
 
 ## 🔌 Integrate with your agents
 
-Today AgentGuard guards its built-in agent runtime. Making it usable from **any codebase** is the current work ([Phase 4 plan](docs/PHASE4_INTEGRATION_PLAN.md)):
+AgentGuard decides, **your app executes**: agents in any codebase ask before each tool call and get ALLOW (with a signed, single-use decision token), REVIEW or BLOCK. Start with the **[Integration guide](docs/INTEGRATION_GUIDE.md)** (which method for which stack, quickstarts, safety checklist) and the runnable [examples](examples/).
 
 | Method | Status |
 |---|---|
@@ -138,7 +140,7 @@ Today AgentGuard guards its built-in agent runtime. Making it usable from **any 
 | SDKs: [TypeScript](packages/sdk-ts) `guard()` / `guardTools()`, [Python](sdk/python) `guard()` / `@guarded` | ✅ available (zero dependencies, fail-closed) |
 | Tool-side verifier (tools accept only signed, single-use decisions) | ✅ available (`DecisionVerifier`, `TokenVerifier`) |
 | [MCP gateway](packages/mcp-gateway) (no code changes for MCP clients or servers) | ✅ available |
-| Sidecar container, CLI | 🚧 planned |
+| [Sidecar compose](docker-compose.sidecar.yml), admin CLI, offline packages (`npm run package`) | ✅ available |
 
 ## 🧪 Tests
 

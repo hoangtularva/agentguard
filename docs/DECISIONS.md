@@ -45,3 +45,4 @@
 | D-36 | Python helpers re-implement fingerprints/signals/canonical hash, with a TS↔Python conformance test on shared fixtures | Call the server for every hash | Privacy mode must work locally; the conformance test prevents silent drift |
 | D-37 | MCP gateway exposes only tools listed in its config, each with an operator-declared role; mandate from config | Auto-expose all upstream tools as high-risk sinks | Least privilege; a sink needs a declared destination to be checkable, and the model must never be able to set its own mandate |
 | D-38 | `@modelcontextprotocol/sdk` 1.32.2 (stable v1 line) for the gateway | MCP SDK v2 split packages | v1 is what current clients/servers use; pinned exact version, production audit 0 |
+| D-39 | Apps UI: key plaintext shown once in-page, two-step inline revoke (no `confirm()`) | Native confirm dialog | Accessible, testable, and doesn't block automation; the key never reaches server logs or lists |
