@@ -82,10 +82,10 @@ describe("real PostgreSQL 16", () => {
 
   it("migrations applied and are idempotent", async () => {
     const t = await db.execute(sql`select count(*)::int as n from information_schema.tables where table_schema='public'`);
-    expect((t as unknown as { rows: { n: number }[] }).rows[0].n).toBe(13);
+    expect((t as unknown as { rows: { n: number }[] }).rows[0].n).toBe(18); // 13 (0000_init) + 5 (0001_external_apps)
     const again = await createDatabase({ url: URL }); // re-run migrate + seed
     const m = await again.execute(sql`select count(*)::int as n from drizzle.__drizzle_migrations`);
-    expect((m as unknown as { rows: { n: number }[] }).rows[0].n).toBe(1);
+    expect((m as unknown as { rows: { n: number }[] }).rows[0].n).toBe(2); // one row per migration file, not re-applied
     await (again as unknown as { $client: { end(): Promise<void> } }).$client.end();
   });
 

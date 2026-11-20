@@ -45,6 +45,7 @@ export async function decideApproval(
     await writeAudit(tx, {
       type: status === "approved" ? "approval.approved" : "approval.rejected",
       severity: "warning",
+      appId: apr.appId,
       sessionId: apr.sessionId,
       toolCallId: apr.toolCallId,
       actorId: actor.id,
@@ -58,6 +59,7 @@ export async function decideApproval(
       type: "approval.execution_denied",
       severity: "warning",
       actorId: params.actorId,
+      appId: "apr" in result && result.apr ? result.apr.appId : undefined,
       sessionId: "apr" in result && result.apr ? result.apr.sessionId : null,
       toolCallId: "apr" in result && result.apr ? result.apr.toolCallId : null,
       reasonCodes: [result.code],

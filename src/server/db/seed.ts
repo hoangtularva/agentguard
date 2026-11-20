@@ -7,6 +7,7 @@ import * as s from "./schema";
 export const DEFAULT_POLICY_ID = "default";
 export const DEMO_AGENT_ID = "agent_assistant";
 export const BENCH_AGENT_ID = "agent_bench";
+export const DEMO_APP_ID = "demo";
 
 export const DEMO_USERS = [
   { id: "u_alice", name: "Alice Nguyen", email: "alice@acme.example", role: "member" as const },
@@ -16,6 +17,10 @@ export const DEMO_USERS = [
 
 /** Idempotent seed: inserts demo identities, corpus and policy v1 if missing. */
 export async function seedDatabase(db: DB): Promise<void> {
+  await db
+    .insert(s.apps)
+    .values({ id: DEMO_APP_ID, name: "Built-in demo", createdBy: "system", defaultPolicyId: DEFAULT_POLICY_ID })
+    .onConflictDoNothing();
   await db.insert(s.users).values(DEMO_USERS).onConflictDoNothing();
   await db
     .insert(s.agents)

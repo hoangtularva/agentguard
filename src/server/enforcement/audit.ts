@@ -20,6 +20,8 @@ export type AuditEventType =
 
 export interface AuditInput {
   type: AuditEventType;
+  /** Tenant; omitted means the built-in demo app. */
+  appId?: string;
   severity?: "info" | "warning" | "critical";
   sessionId?: string | null;
   toolCallId?: string | null;
@@ -35,6 +37,7 @@ type Tx = Pick<DB, "insert">;
 export async function writeAudit(db: Tx, e: AuditInput): Promise<void> {
   await db.insert(auditEvents).values({
     id: `evt_${randomUUID()}`,
+    ...(e.appId ? { appId: e.appId } : {}),
     type: e.type,
     severity: e.severity ?? "info",
     sessionId: e.sessionId ?? null,

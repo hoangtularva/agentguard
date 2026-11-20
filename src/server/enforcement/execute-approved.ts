@@ -16,7 +16,7 @@ export interface ExecuteApprovedParams {
   args?: unknown;
 }
 
-type Denial = { kind: "deny"; code: ApprovalDenyCode; message: string; sessionId?: string; toolCallId?: string };
+type Denial = { kind: "deny"; code: ApprovalDenyCode; message: string; appId?: string; sessionId?: string; toolCallId?: string };
 type Prepared = Denial | { kind: "go"; sessionId: string; toolCallId: string; tool: string; exec: ExecResult };
 
 /**
@@ -31,9 +31,10 @@ type Prepared = Denial | { kind: "go"; sessionId: string; toolCallId: string; to
  */
 export async function executeApproved(deps: EnforcementDeps, params: ExecuteApprovedParams): Promise<ApprovalExecutionOutcome> {
   const { db } = deps;
-  const deny = async (code: ApprovalDenyCode, message: string, sessionId?: string, toolCallId?: string) => {
+  const deny = async (code: ApprovalDenyCode, message: string, sessionId?: string, toolCallId?: string, appId?: string) => {
     await writeAudit(db, {
       type: "approval.execution_denied",
+      appId,
       severity: "critical",
       sessionId,
       toolCallId,
@@ -66,7 +67,7 @@ export async function executeApproved(deps: EnforcementDeps, params: ExecuteAppr
     );
   }
 
-  if (prepared.kind === "deny") return deny(prepared.code, prepared.message, prepared.sessionId, prepared.toolCallId);
+  if (prepared.kind === "deny") return deny(prepared.code, prepared.message, prepared.sessionId, prepared.toolCallId, prepared.appId);
   const { exec } = prepared;
   return { ok: true, replayed: false, toolCallId: prepared.toolCallId, summary: exec.summary, output: exec.output, exec };
 }
@@ -75,7 +76,7 @@ export async function executeApproved(deps: EnforcementDeps, params: ExecuteAppr
 async function claimAndExecute(deps: EnforcementDeps, tx: DB, params: ExecuteApprovedParams): Promise<Prepared> {
   const [apr] = await tx.select().from(s.approvals).where(eq(s.approvals.id, params.approvalId)).for("update").limit(1);
   if (!apr) return { kind: "deny", code: "APPROVAL_NOT_FOUND", message: "Approval not found." };
-  const ctx = { sessionId: apr.sessionId, toolCallId: apr.toolCallId };
+  const ctx = { appId: apr.appId, sessionId: apr.sessionId, toolCallId: apr.toolCallId };
   const no = (code: ApprovalDenyCode, message: string): Denial => ({ kind: "deny", code, message, ...ctx });
   const retire = async (status: "expired" | "invalidated") => {
     await tx.update(s.approvals).set({ status }).where(eq(s.approvals.id, apr.id));
@@ -133,6 +134,7 @@ async function claimAndExecute(deps: EnforcementDeps, tx: DB, params: ExecuteApp
   const exec = await runExecution(
     deps,
     {
+      appId: apr.appId,
       sessionId: tc.sessionId,
       toolCallId: tc.id,
       tool: tc.tool,
@@ -145,6 +147,7 @@ async function claimAndExecute(deps: EnforcementDeps, tx: DB, params: ExecuteApp
   );
   await writeAudit(tx, {
     type: "approval.executed",
+    appId: apr.appId,
     sessionId: tc.sessionId,
     toolCallId: tc.id,
     actorId: params.actorId,
