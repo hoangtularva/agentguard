@@ -13,6 +13,9 @@ export const ConditionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("sensitivity_at_least"), level: SensitivitySchema }).strict(),
   z.object({ type: z.literal("sensitivity_at_most"), level: SensitivitySchema }).strict(),
   z.object({ type: z.literal("tool_risk_at_least"), level: RiskLevelSchema }).strict(),
+  z.object({ type: z.literal("tool_risk_at_most"), level: RiskLevelSchema }).strict(),
+  /** Tool-name-agnostic rules for external apps: "source" reads data in, "sink" sends it out. */
+  z.object({ type: z.literal("tool_kind"), kind: z.enum(["source", "sink"]) }).strict(),
   z.object({ type: z.literal("untrusted_context"), value: z.boolean() }).strict(),
   z.object({ type: z.literal("signal_present"), signal: z.string().min(1).max(64) }).strict(),
   z.object({ type: z.literal("user_role_in"), roles: z.array(z.enum(USER_ROLES)).min(1) }).strict(),

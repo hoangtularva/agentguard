@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 
 export interface ApprovalView {
   id: string;
+  /** Tenant. External apps execute approved actions themselves (decision-only). */
+  app: string;
   status: string;
   tool: string;
   args: Record<string, unknown>;
@@ -31,6 +33,7 @@ const STATUS_TONE: Record<string, "review" | "allow" | "block" | "neutral" | "br
   pending: "review",
   approved: "brand",
   executed: "allow",
+  consumed: "allow",
   rejected: "block",
   expired: "neutral",
   invalidated: "block",
@@ -57,6 +60,7 @@ export function ApprovalCard({ v }: { v: ApprovalView }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const open = v.status === "pending" || v.status === "approved";
+  const external = v.app !== "demo";
 
   async function call(path: string, body: unknown) {
     const r = await fetch(`/api/approvals/${v.id}/${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -72,10 +76,10 @@ export function ApprovalCard({ v }: { v: ApprovalView }) {
     setBusy(kind);
     try {
       if (kind !== "execute" && v.status === "pending") await call("decide", { decision: kind });
-      if (kind !== "reject") {
+      if (kind !== "reject" && !external) {
         const j = await call("execute", { idempotencyKey: crypto.randomUUID() });
         toast.success("Executed exactly once", { description: j.output });
-      } else toast("Rejected");
+      } else toast(kind === "reject" ? "Rejected" : `Approved: ${v.app} can now consume it`);
       router.refresh();
     } catch (e) {
       toast.error((e as Error).message);
@@ -97,6 +101,7 @@ export function ApprovalCard({ v }: { v: ApprovalView }) {
         <Pill tone={STATUS_TONE[v.status] ?? "neutral"}>{v.status}</Pill>
         <Pill>risk {v.riskScore}</Pill>
         <Pill>policy v{v.policyVersion}</Pill>
+        {external && <Pill tone="brand">app {v.app}</Pill>}
         <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground">
           <Clock3 className="size-3.5" /> {open ? <Countdown to={v.expiresAt} /> : `${v.createdAt.slice(0, 16).replace("T", " ")} UTC`}
         </span>
@@ -148,11 +153,14 @@ export function ApprovalCard({ v }: { v: ApprovalView }) {
                 {busy === "reject" && <Loader2 className="animate-spin" />} Reject
               </Button>
               <Button size="sm" disabled={!!busy} onClick={() => act("approve")}>
-                {busy === "approve" && <Loader2 className="animate-spin" />} Approve &amp; execute
+                {busy === "approve" && <Loader2 className="animate-spin" />} {external ? "Approve" : <>Approve &amp; execute</>}
               </Button>
             </>
           )}
-          {v.status === "approved" && (
+          {v.status === "approved" && external && (
+            <span className="text-xs text-muted-foreground">Approved. Waiting for {v.app} to consume it via /v1/approvals/{v.id}/consume.</span>
+          )}
+          {v.status === "approved" && !external && (
             <Button size="sm" disabled={!!busy} onClick={() => act("execute")}>
               {busy === "execute" && <Loader2 className="animate-spin" />} Execute approved action
             </Button>

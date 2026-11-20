@@ -22,6 +22,8 @@ function describeCondition(c: Condition): string {
     case "sensitivity_at_least": return `data ≥ ${c.level}`;
     case "sensitivity_at_most": return `data ≤ ${c.level}`;
     case "tool_risk_at_least": return `tool risk ≥ ${c.level}`;
+    case "tool_risk_at_most": return `tool risk ≤ ${c.level}`;
+    case "tool_kind": return `tool is a ${c.kind}`;
     case "untrusted_context": return `untrusted content in context = ${c.value}`;
     case "signal_present": return `signal ${c.signal}`;
     case "user_role_in": return `role ∈ ${c.roles.join(", ")}`;

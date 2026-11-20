@@ -16,7 +16,8 @@ import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 export const IDENTITY_COOKIE = "ag_uid";
 
 const g = globalThis as unknown as { __agSecret?: string };
-function secret(): string {
+/** Server secret (AUTH_SECRET). Also the root of per-app decision-token keys. */
+export function secret(): string {
   if (process.env.AUTH_SECRET && process.env.AUTH_SECRET.length >= 16) return process.env.AUTH_SECRET;
   g.__agSecret ??= randomBytes(32).toString("hex"); // dev fallback: sessions reset on restart
   return g.__agSecret;

@@ -28,6 +28,14 @@ export interface ToolRunner {
   ): Promise<ExecResult>;
 }
 
+/** Issues signed, single-use decision tokens (decision-only mode: the host app executes). */
+export interface DecisionTokenIssuer {
+  issue(
+    tx: DB,
+    call: { appId: string; agentId: string; toolCallId: string; tool: string; args: Record<string, unknown> },
+  ): Promise<{ token: string; expiresAt: Date }>;
+}
+
 export interface Clock {
   now(): Date;
 }
@@ -37,7 +45,11 @@ export interface EnforcementDeps {
   db: DB;
   tools: ToolCatalog;
   resources: ResourceResolver;
+  /** Absent = decision-only mode: ALLOW issues a decision token instead of executing. */
   runner?: ToolRunner;
+  tokens?: DecisionTokenIssuer;
+  /** Tenant this instance acts for; approvals of other apps are invisible to it. */
+  appId?: string;
   resolvePolicy: PolicyResolver;
   clock: Clock;
 }
