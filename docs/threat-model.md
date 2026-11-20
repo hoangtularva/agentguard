@@ -120,7 +120,7 @@ New assets: API keys, decision tokens, per-app tool specs, external sessions' pr
 |---|---|---|
 | T36 | Agent runtime bypasses the SDK and calls the tool directly | **Mitigated** where the tool verifies decision tokens (`DecisionVerifier` / `TokenVerifier`); MCP gateway sits in the path. Residual: unverified tools are only cooperatively guarded |
 | T37 | Arguments swapped after an ALLOW / approval | **Mitigated**: token binds the canonical args hash; approvals bind args + policy version; tests for ARGS_MISMATCH |
-| T38 | Decision-token replay / forgery / cross-app use | **Mitigated**: HMAC with per-app derived key, 60 s expiry, server `consumed_at` (concurrent verification: exactly one success on PG16), WRONG_APP check |
+| T38 | Decision-token replay / forgery / cross-app use | **Mitigated**: HMAC or Ed25519 (O2: tool services verify with a public key, no shared secret) with per-app derived keys, 60 s expiry, server `consumed_at` (concurrent verification: exactly one success on PG16), WRONG_APP check |
 | T39 | Cross-tenant access with another app's key | **Mitigated**: every read/write scoped by `app_id`; foreign sessions, calls, approvals → 404 (no existence oracle); the demo UI's execute path cannot run external approvals |
 | T40 | Client forges trusted provenance (registers content as `user_prompt`) | **Mitigated**: `/v1/.../sources` accepts only untrusted types (400 otherwise); client-sent signals can only escalate |
 | T41 | API key theft | **Reduced**: SHA-256 at rest, shown once, scopes, agent binding, revocation (UI/CLI), per-key rate limit (429 + Retry-After), never echoed in errors. Residual: a stolen `check` key can open sessions with any prompt (see T42) |

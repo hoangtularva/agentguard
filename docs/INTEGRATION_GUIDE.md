@@ -36,7 +36,7 @@ Need decisions inside your own process, no server (tests, offline evaluation)?
 | **Agent** | An identity with an upper bound of tools (`allowedTools`). Keys can be bound to one agent. |
 | **Session** | One user task. Its **prompt is the trusted channel**: emails/URLs the user typed there are authorized destinations. Sub-agents are listed in `agents` and share the session's provenance. |
 | **Source** | Content the agent saw (email, web page, document, another agent's output). Untrusted. Privacy mode sends only its emails/URLs (fingerprints) and locally detected injection signals. |
-| **Decision token** | `agt1.<payload>.<HMAC>`: binds app, agent, call, tool and a canonical hash of the arguments; expires in 60 s; single use. |
+| **Decision token** | Binds app, agent, call, tool and a canonical hash of the arguments; expires in 60 s; single use. `agt1` = HMAC (offline verification needs the shared key); `agt2` = **Ed25519** (`npm run admin -- token-alg <app> ed25519`; tools verify with the public key from `GET /v1/keys/<app>`, no secret). |
 
 Keys and scopes: `check` (sessions, sources, check, approvals, results), `verify` (token verification, for tool services), `admin` (tools, agents). Keys are shown once and stored as SHA-256 hashes.
 
@@ -107,7 +107,7 @@ verifier = TokenVerifier(key=os.environ["AGENTGUARD_TOKEN_KEY"], app_id="myapp")
 send_email = verifier.protect("send_email")(mailer.send)                            # call with agentguard_token=...
 ```
 
-Offline mode enforces single use per process; use online mode for replicated tool services.
+Offline mode enforces single use per process; use online mode for replicated tool services. With Ed25519 apps, pass `publicKey` (TS) / `public_key` (Python, needs `cryptography`) instead of the shared key: the tool service then holds no secret at all.
 
 ### 3.6 Embedded core
 `@agentguard/core` exposes the pure decision point (`evaluatePolicy`), `compileToolSpec`, provenance helpers and the starter policy. No I/O, no server, no approvals or audit: use it for tests, simulations or as a building block.

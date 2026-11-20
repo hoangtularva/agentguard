@@ -1,4 +1,9 @@
-"""Offline verification of AgentGuard decision tokens (agt1.<payload>.<hmac>)."""
+"""Offline verification of AgentGuard decision tokens.
+
+agt1.<payload>.<HMAC-SHA256>  needs the app's shared key (stdlib only).
+agt2.<payload>.<Ed25519>      needs the app's public key (GET /v1/keys/<app>) and the optional
+                              `cryptography` package (pip install agentguard-sdk[ed25519]).
+"""
 from __future__ import annotations
 
 import base64
@@ -36,17 +41,33 @@ def _b64d(s: str) -> bytes:
     return base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
 
 
-def verify_decision_token(token: str, *, key: str, tool: str, args: dict, app_id: str | None = None, now: float | None = None) -> dict:
+def verify_decision_token(token: str, *, tool: str, args: dict, key: str | None = None, public_key: str | None = None,
+                          app_id: str | None = None, now: float | None = None) -> dict:
     """Return the payload if `token` covers exactly this tool + args; raise TokenError otherwise.
 
     Single use is NOT enforced here: keep a cache of seen `jti`s or use POST /v1/tokens/verify.
     """
     parts = token.split(".") if isinstance(token, str) else []
-    if len(parts) != 3 or parts[0] != "agt1":
+    if len(parts) != 3 or parts[0] not in ("agt1", "agt2"):
         raise TokenError("MALFORMED", "Not an AgentGuard decision token.")
-    want = hmac.new(key.encode(), f"agt1.{parts[1]}".encode(), hashlib.sha256).digest()
-    if not hmac.compare_digest(want, _b64d(parts[2])):
-        raise TokenError("BAD_SIGNATURE", "Signature mismatch.")
+    signed = f"{parts[0]}.{parts[1]}".encode()
+    if parts[0] == "agt1":
+        if not key:
+            raise TokenError("BAD_SIGNATURE", "An HMAC (agt1) token needs the shared key.")
+        if not hmac.compare_digest(hmac.new(key.encode(), signed, hashlib.sha256).digest(), _b64d(parts[2])):
+            raise TokenError("BAD_SIGNATURE", "Signature mismatch.")
+    else:
+        if not public_key:
+            raise TokenError("BAD_SIGNATURE", "An Ed25519 (agt2) token needs the app's public key.")
+        try:
+            from cryptography.exceptions import InvalidSignature
+            from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+        except ImportError:
+            raise TokenError("UNSUPPORTED", "Install `cryptography` for Ed25519 tokens, or verify online with AgentGuard.verify_token().") from None
+        try:
+            Ed25519PublicKey.from_public_bytes(_b64d(public_key)).verify(_b64d(parts[2]), signed)
+        except (InvalidSignature, ValueError):
+            raise TokenError("BAD_SIGNATURE", "Signature mismatch.") from None
     payload = json.loads(_b64d(parts[1]))
     if (now if now is not None else time.time()) > payload.get("exp", 0):
         raise TokenError("EXPIRED", "Decision token expired.")
@@ -66,14 +87,14 @@ class TokenVerifier:
     `AgentGuard.verify_token` (server-side single use).
     """
 
-    def __init__(self, key: str, app_id: str | None = None):
-        self.key, self.app_id, self._seen = key, app_id, {}
+    def __init__(self, key: str | None = None, app_id: str | None = None, public_key: str | None = None):
+        self.key, self.public_key, self.app_id, self._seen = key, public_key, app_id, {}
 
     def verify(self, token: str | None, tool: str, args: dict) -> dict:
         if not token:
             raise TokenError("MISSING", "No AgentGuard decision token.")
         now = time.time()
-        payload = verify_decision_token(token, key=self.key, tool=tool, args=args, app_id=self.app_id, now=now)
+        payload = verify_decision_token(token, key=self.key, public_key=self.public_key, tool=tool, args=args, app_id=self.app_id, now=now)
         self._seen = {j: e for j, e in self._seen.items() if e >= now}
         if payload["jti"] in self._seen:
             raise TokenError("REPLAYED", "Token was already used.")

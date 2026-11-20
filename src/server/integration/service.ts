@@ -4,7 +4,7 @@
  */
 import { and, desc, eq, isNull, max } from "drizzle-orm";
 import { z } from "zod";
-import { type DecisionTokenPayload, signDecisionToken, verifyDecisionToken } from "../../../packages/core/src/decision-token";
+import { type DecisionTokenPayload, signDecisionToken, signDecisionTokenEd25519, verifyDecisionToken } from "../../../packages/core/src/decision-token";
 import { ToolSpecSchema, compileToolSpec } from "../../../packages/core/src/tool-spec";
 import { hashCanonical, sha256 } from "@/server/core/canonical";
 import { detectInjectionSignals, extractFingerprints, normalizeValue, trustForSourceType } from "@/server/core/provenance";
@@ -19,7 +19,7 @@ import { dbPolicyResolver } from "@/server/enforcement/policy-store";
 import type { DecisionTokenIssuer, EnforcementDeps } from "@/server/enforcement/ports";
 import { startSession } from "@/server/enforcement/session";
 import type { SessionState } from "@/server/enforcement/types";
-import { type ApiPrincipal, agentKey, tokenKeyFor } from "./apps";
+import { type ApiPrincipal, agentKey, ed25519For, tokenAlgOf, tokenKeyFor } from "./apps";
 import { resourceResolverFor, toolCatalogFor } from "./catalog";
 
 /** Short on purpose: a token authorizes one imminent call, not a future one. */
@@ -52,7 +52,11 @@ const tokenIssuer = (principal: ApiPrincipal, now: () => Date): DecisionTokenIss
     };
     const expiresAt = new Date(payload.exp * 1000);
     await tx.insert(s.decisionTokens).values({ id: payload.jti, appId: call.appId, toolCallId: call.toolCallId, argsHash: payload.ah, expiresAt });
-    return { token: signDecisionToken(tokenKeyFor(principal.app), payload), expiresAt };
+    const token =
+      tokenAlgOf(principal.app) === "ed25519"
+        ? signDecisionTokenEd25519(ed25519For(principal.app).privateKey, payload)
+        : signDecisionToken(tokenKeyFor(principal.app), payload);
+    return { token, expiresAt };
   },
 });
 
@@ -333,7 +337,13 @@ export const VerifyBody = z.object({
 });
 
 export async function verifyToken(db: DB, principal: ApiPrincipal, body: z.infer<typeof VerifyBody>) {
-  const v = verifyDecisionToken(body.token, { key: tokenKeyFor(principal.app), tool: body.tool, args: body.args, appId: principal.app.id });
+  const v = verifyDecisionToken(body.token, {
+    key: tokenKeyFor(principal.app),
+    publicKey: ed25519For(principal.app).publicKey,
+    tool: body.tool,
+    args: body.args,
+    appId: principal.app.id,
+  });
   let result: { valid: boolean; code?: string; message?: string; callId?: string };
   if (!v.ok) result = { valid: false, code: v.code, message: v.message };
   else if (!body.consume) result = { valid: true, callId: v.payload.call };

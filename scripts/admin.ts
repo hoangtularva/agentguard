@@ -5,6 +5,7 @@
  *   npm run admin -- create-key <appId> <name> [--scopes check,verify,admin] [--agent <agentRef>]
  *   npm run admin -- revoke-key <appId> <keyId>
  *   npm run admin -- token-key <appId>     (offline verification key for tool services; keep secret)
+ *   npm run admin -- token-alg <appId> hmac|ed25519   (decision-token signature; ed25519 = verify with a public key)
  *   npm run admin -- audit-verify          (seal pending audit events, then verify the hash chain)
  *   npm run admin -- list
  *
@@ -54,6 +55,15 @@ async function main() {
 ${tokenKeyFor(app)}`);
       break;
     }
+    case "token-alg": {
+      const [appId, alg] = rest;
+      if (alg !== "hmac" && alg !== "ed25519") throw new Error("usage: token-alg <appId> hmac|ed25519");
+      const [app] = await db.select().from(s.apps).where(eq(s.apps.id, appId ?? ""));
+      if (!app || app.id === "demo") throw new Error("Unknown app.");
+      await db.update(s.apps).set({ settings: { ...app.settings, tokenAlg: alg } }).where(eq(s.apps.id, app.id));
+      console.log(`${app.id} now issues ${alg} decision tokens.${alg === "ed25519" ? ` Public key: GET /v1/keys/${app.id}` : ""}`);
+      break;
+    }
     case "audit-verify": {
       while ((await sealAuditChain(db)) === 1000);
       const v = await verifyAuditChain(db);
@@ -71,7 +81,7 @@ ${tokenKeyFor(app)}`);
       break;
     }
     default:
-      console.log("Commands: create-app <id> <name> | create-key <appId> <name> [--scopes a,b] [--agent ref] | revoke-key <appId> <keyId> | token-key <appId> | audit-verify | list");
+      console.log("Commands: create-app <id> <name> | create-key <appId> <name> [--scopes a,b] [--agent ref] | revoke-key <appId> <keyId> | token-key <appId> | token-alg <appId> hmac|ed25519 | audit-verify | list");
   }
   process.exit(0);
 }

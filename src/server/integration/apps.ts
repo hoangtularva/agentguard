@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { and, eq, isNull } from "drizzle-orm";
-import { deriveTokenKey } from "../../../packages/core/src/decision-token";
+import { deriveEd25519KeyPair, deriveTokenKey } from "../../../packages/core/src/decision-token";
 import { STARTER_POLICY } from "../../../packages/core/src/starter-policy";
 import { hashCanonical, sha256 } from "@/server/core/canonical";
 import type { DB } from "@/server/db/client";
@@ -17,16 +17,24 @@ export const APP_ID_RE = /^[a-z][a-z0-9-]{2,31}$/;
 /** Internal agent ids are namespaced per app, so two apps can both have an agent "researcher". */
 export const agentKey = (appId: string, agentRef: string) => `${appId}.${agentRef}`;
 
-/** Signing key for this app's decision tokens (derived; nothing stored). */
+/** Shared HMAC key for this app's agt1 decision tokens (derived; nothing stored). */
 export const tokenKeyFor = (app: Pick<App, "id" | "tokenKeyVersion">) => deriveTokenKey(secret(), app.id, app.tokenKeyVersion);
+/** Ed25519 key pair for agt2 tokens (derived; the public key can be published). */
+export const ed25519For = (app: Pick<App, "id" | "tokenKeyVersion">) => deriveEd25519KeyPair(secret(), app.id, app.tokenKeyVersion);
+export type TokenAlg = "hmac" | "ed25519";
+/** "hmac" (default; offline verification needs the shared key) or "ed25519" (verify with the public key). */
+export const tokenAlgOf = (app: Pick<App, "settings">): TokenAlg => (app.settings.tokenAlg === "ed25519" ? "ed25519" : "hmac");
 
 /** Register an app with its own copy of the tool-agnostic starter policy. */
-export async function createApp(db: DB, p: { id: string; name: string; createdBy: string }): Promise<App> {
+export async function createApp(db: DB, p: { id: string; name: string; createdBy: string; tokenAlg?: TokenAlg }): Promise<App> {
   if (!APP_ID_RE.test(p.id) || p.id === "demo") throw new Error("App id must be 3–32 chars: a-z, 0-9, '-' (and not 'demo').");
   const policyId = `${p.id}.default`;
   return db.transaction(async (raw) => {
     const tx = raw as unknown as DB;
-    const [app] = await tx.insert(s.apps).values({ id: p.id, name: p.name, createdBy: p.createdBy, defaultPolicyId: policyId }).returning();
+    const [app] = await tx
+      .insert(s.apps)
+      .values({ id: p.id, name: p.name, createdBy: p.createdBy, defaultPolicyId: policyId, settings: p.tokenAlg ? { tokenAlg: p.tokenAlg } : {} })
+      .returning();
     await tx.insert(s.policyVersions).values({
       id: `${policyId}@1`,
       appId: p.id,

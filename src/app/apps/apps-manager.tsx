@@ -11,6 +11,7 @@ export interface AppView {
   id: string;
   name: string;
   defaultPolicyId: string;
+  tokenAlg: "hmac" | "ed25519";
   calls: number;
   keys: { id: string; name: string; prefix: string; scopes: string[]; agentId: string | null; createdAt: string; lastUsedAt: string | null; revokedAt: string | null }[];
   tools: { name: string; version: number; kind: string; risk: string; destinationArg?: string }[];
@@ -107,6 +108,9 @@ export function AppCard({ app }: { app: AppView }) {
         <span className="text-sm text-muted-foreground">{app.name}</span>
         <Pill>policy {app.defaultPolicyId}</Pill>
         <Pill>{app.calls} checked calls</Pill>
+        <Pill tone={app.tokenAlg === "ed25519" ? "allow" : "neutral"}>
+          tokens: {app.tokenAlg === "ed25519" ? `Ed25519 (public key: /v1/keys/${app.id})` : "HMAC"}
+        </Pill>
       </div>
 
       <div className="mt-3 grid gap-4 lg:grid-cols-2">
