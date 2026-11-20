@@ -1,0 +1,12 @@
+# Secret scanning (gitleaks). Default rules plus an allowlist for synthetic test fixtures
+# (fake keys such as "agk_not-a-real-key-…" and throw-away local database passwords).
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Synthetic test fixtures and generated benchmark output"
+paths = [
+  '''^tests/''',
+  '''^sdk/python/tests/''',
+  '''^docs/results/''',
+]
