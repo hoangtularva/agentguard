@@ -79,6 +79,10 @@ cp .env.example .env          # set AUTH_SECRET to a long random string
 docker compose up --build -d  # http://localhost:3000
 ```
 
+Local LLM inside Docker too: `docker compose --profile llm up --build`, then `docker compose exec ollama ollama pull qwen2.5:3b` and set `OLLAMA_HOST_FROM_DOCKER=http://ollama:11434`.
+
+**Option D: GitHub Codespaces / Dev Containers**: open the repo in a Codespace (`.devcontainer/` installs Node 22 + Python 3.12 and runs `npm ci`), then `npm run dev`.
+
 Full Windows / Docker / Ollama guide: [docs/setup-windows.md](docs/setup-windows.md).
 
 > **Demo identities are not authentication.** Alice/Mallory (members) and Bob (approver) let you explore roles. Sign-in is gated by `AGENTGUARD_DEMO_AUTH` and is off by default in production. Keep demo deployments on localhost.

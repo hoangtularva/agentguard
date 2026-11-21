@@ -2,6 +2,9 @@
 #   cp .env.example .env    # then set AUTH_SECRET (and optionally ANTHROPIC_API_KEY)
 #   docker compose up --build
 #   open http://localhost:3000
+# With a local LLM in a container (downloads the Ollama image and, on first use, the model):
+#   docker compose --profile llm up --build
+#   docker compose exec ollama ollama pull qwen2.5:3b
 services:
   db:
     image: postgres:16-alpine
@@ -32,6 +35,7 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       AGENTGUARD_LLM_MODEL: ${AGENTGUARD_LLM_MODEL:-claude-opus-5-5}
       # Ollama running on the host machine (optional; the app works without it)
+      # Host Ollama by default; with --profile llm set OLLAMA_HOST_FROM_DOCKER=http://ollama:11434
       OLLAMA_HOST: ${OLLAMA_HOST_FROM_DOCKER:-http://host.docker.internal:11434}
       AGENTGUARD_OLLAMA_MODEL: ${AGENTGUARD_OLLAMA_MODEL:-qwen2.5:3b}
     extra_hosts:
@@ -39,5 +43,15 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
 
+  # Optional (profile "llm"): Ollama in a container. Without it the app uses an Ollama on the
+  # host if one is running, and the simulated agent always works.
+  ollama:
+    image: ollama/ollama:0.40.15 # same version as the host build used for the benchmarks
+    profiles: ["llm"]
+    volumes:
+      - ollama:/root/.ollama
+    # Not published to the host: only the app container talks to it.
+
 volumes:
   pgdata:
+  ollama:
