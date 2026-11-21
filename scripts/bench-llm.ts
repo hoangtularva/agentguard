@@ -5,6 +5,8 @@
  *   npm run bench:llm -- --set development --runs 2
  *   npm run bench:llm -- --ids H05,H07 --model qwen2.5:3b
  *   npm run bench:llm -- --provider anthropic          # needs ANTHROPIC_API_KEY
+ *   npm run bench:llm -- --set v2-holdout --runs 3 --model llama3.2:3b --tag llama3.2-3b
+ *     (--tag: write docs/benchmark-llm-<set>-<tag>.md and leave the "latest" files untouched)
  *
  * Writes bench-results/llm-<id>.json (+ a checkpoint after every scenario) and
  * docs/benchmark-llm-latest.md. Nothing here is hand-edited.
@@ -99,9 +101,10 @@ async function main() {
     scenarios: results,
   };
   fs.writeFileSync(path.join(dir, `${id}.json`), JSON.stringify(report, null, 2));
-  fs.writeFileSync(path.join(dir, set.startsWith("v2") ? `latest-llm-${set}.json` : "latest-llm.json"), JSON.stringify(report, null, 2));
+  const tag = arg("tag");
+  if (!tag) fs.writeFileSync(path.join(dir, set.startsWith("v2") ? `latest-llm-${set}.json` : "latest-llm.json"), JSON.stringify(report, null, 2));
   fs.mkdirSync(path.join(process.cwd(), "docs", "results"), { recursive: true });
-  fs.writeFileSync(path.join(process.cwd(), "docs", "results", `${id}-${set}.json`), JSON.stringify(report, null, 2));
+  fs.writeFileSync(path.join(process.cwd(), "docs", "results", `${id}-${set}${tag ? `-${tag}` : ""}.json`), JSON.stringify(report, null, 2));
   fs.rmSync(checkpoint, { force: true });
 
   const m = report.metrics;
@@ -173,7 +176,7 @@ async function main() {
     "- Defensive system prompt is on in both modes, so the unguarded baseline already includes prompt-level defense.",
     "",
   ].join("\n");
-  fs.writeFileSync(path.join(process.cwd(), "docs", SETS[set].doc), md);
+  fs.writeFileSync(path.join(process.cwd(), "docs", tag ? SETS[set].doc.replace(/\.md$/, `-${tag}.md`) : SETS[set].doc), md);
   console.log(md.split("## Outcomes")[0]);
   process.exit(0);
 }
