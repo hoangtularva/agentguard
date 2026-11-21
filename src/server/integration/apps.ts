@@ -103,7 +103,9 @@ export async function authenticateApiKey(db: DB, authorization: string | null): 
     .where(and(eq(s.apiKeys.keyHash, sha256(m[1])), isNull(s.apiKeys.revokedAt)))
     .limit(1);
   if (!row) return null;
-  // Best-effort usage stamp; never blocks the request.
-  void db.update(s.apiKeys).set({ lastUsedAt: new Date() }).where(eq(s.apiKeys.id, row.key.id)).catch(() => {});
+  // Best-effort usage stamp, at most once a minute per key; never blocks the request.
+  const now = Date.now();
+  if (!row.key.lastUsedAt || now - row.key.lastUsedAt.getTime() > 60_000)
+    void db.update(s.apiKeys).set({ lastUsedAt: new Date(now) }).where(eq(s.apiKeys.id, row.key.id)).catch(() => {});
   return { keyId: row.key.id, app: row.app, agentId: row.key.agentId, scopes: row.key.scopes as ApiScope[] };
 }

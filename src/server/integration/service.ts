@@ -20,7 +20,7 @@ import type { DecisionTokenIssuer, EnforcementDeps } from "@/server/enforcement/
 import { startSession } from "@/server/enforcement/session";
 import type { SessionState } from "@/server/enforcement/types";
 import { type ApiPrincipal, agentKey, ed25519For, tokenAlgOf, tokenKeyFor } from "./apps";
-import { resourceResolverFor, toolCatalogFor } from "./catalog";
+import { invalidateCatalog, resourceResolverFor, toolCatalogFor } from "./catalog";
 
 /** Short on purpose: a token authorizes one imminent call, not a future one. */
 export const DECISION_TOKEN_TTL_SECONDS = 60;
@@ -408,7 +408,7 @@ export async function putTool(db: DB, principal: ApiPrincipal, name: string, spe
   } catch (err) {
     throw new ApiError(400, "invalid_tool_spec", (err as Error).message);
   }
-  return db.transaction(async (raw) => {
+  const saved = await db.transaction(async (raw) => {
     const tx = raw as unknown as DB;
     const [{ v }] = await tx
       .select({ v: max(s.toolSpecs.version) })
@@ -420,6 +420,8 @@ export async function putTool(db: DB, principal: ApiPrincipal, name: string, spe
     await writeAudit(tx, { type: "tool_spec.saved", appId: principal.app.id, actorId: `app:${principal.keyId}`, payload: { name, version, kind: parsed.data.kind, risk: parsed.data.risk } });
     return { name, version };
   });
+  invalidateCatalog(principal.app.id); // after commit, so no reader re-caches the old version
+  return saved;
 }
 
 export const PutAgentBody = z.object({

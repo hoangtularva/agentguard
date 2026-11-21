@@ -10,17 +10,27 @@ export type PolicyResolver = (policyId: string, tx?: DB) => Promise<PolicyRef>;
 
 export class PolicyNotFoundError extends Error {}
 
+/** Validated documents by (policy, version, stored hash): versions are immutable, so parsing once is enough. */
+const g = globalThis as unknown as { __agPolicyCache?: Map<string, PolicyDocument> };
+
 export async function getActivePolicy(db: DB, policyId: string): Promise<PolicyRef> {
-  const [active] = await db.select().from(activePolicy).where(eq(activePolicy.policyId, policyId)).limit(1);
-  if (!active) throw new PolicyNotFoundError(`No active policy "${policyId}"`);
+  // One round trip: the active pointer joined to its version row.
   const [row] = await db
-    .select()
-    .from(policyVersions)
-    .where(and(eq(policyVersions.policyId, policyId), eq(policyVersions.version, active.version)))
+    .select({ active: activePolicy.version, version: policyVersions.version, document: policyVersions.document, hash: policyVersions.documentHash })
+    .from(activePolicy)
+    .leftJoin(policyVersions, and(eq(policyVersions.policyId, activePolicy.policyId), eq(policyVersions.version, activePolicy.version)))
+    .where(eq(activePolicy.policyId, policyId))
     .limit(1);
-  if (!row) throw new PolicyNotFoundError(`Active version ${active.version} of "${policyId}" missing`);
-  // Re-validate on load: a corrupted row must fail closed, not evaluate partially.
-  const document = PolicyDocumentSchema.parse(row.document);
+  if (!row) throw new PolicyNotFoundError(`No active policy "${policyId}"`);
+  if (row.version === null) throw new PolicyNotFoundError(`Active version ${row.active} of "${policyId}" missing`);
+  const key = `${policyId}@${row.version}#${row.hash}`;
+  g.__agPolicyCache ??= new Map();
+  let document = g.__agPolicyCache.get(key);
+  if (!document) {
+    // Validate on first load: a corrupted row must fail closed, not evaluate partially.
+    document = PolicyDocumentSchema.parse(row.document);
+    g.__agPolicyCache.set(key, document);
+  }
   return { policyId, version: row.version, document };
 }
 
