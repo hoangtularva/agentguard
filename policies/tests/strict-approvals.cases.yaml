@@ -1,0 +1,18 @@
+cases:
+  - name: read internal
+    tool: { name: search, kind: source, risk: low }
+    dataSensitivity: internal
+    expect: ALLOW
+  - name: read confidential needs approval
+    tool: { name: search, kind: source, risk: low }
+    dataSensitivity: confidential
+    expect: REVIEW
+  - name: every send needs approval
+    tool: { name: post, kind: sink, risk: low }
+    destination: { value: "#team", inMandate: true, origin: [trusted_user] }
+    expect: REVIEW
+  - name: confidential never leaves
+    tool: { name: post, kind: sink, risk: low }
+    destination: { value: "#team", inMandate: true, origin: [trusted_user] }
+    dataSensitivity: confidential
+    expect: BLOCK

@@ -21,8 +21,8 @@ export interface Step {
   detail: string;
 }
 
-export async function runDemo(baseUrl: string, apiKey: string, log: (s: string) => void = console.log) {
-  const ag = new AgentGuard({ baseUrl, apiKey });
+export async function runDemo(baseUrl: string, apiKey: string, log: (s: string) => void = console.log, timeoutMs?: number) {
+  const ag = new AgentGuard({ baseUrl, apiKey, timeoutMs });
   const session = await ag.startSession({
     userRef: "alice",
     agentId: "researcher",

@@ -28,7 +28,8 @@ afterAll(() => server?.close());
 
 describe("examples", () => {
   it("TypeScript multi-agent example", async () => {
-    const { steps, outbox } = await runDemo(server.url, env.AGENTGUARD_API_KEY, () => {});
+    // Generous timeout: the whole suite runs in parallel on CI/laptop CPUs (the SDK default is 2 s, fail-closed).
+    const { steps, outbox } = await runDemo(server.url, env.AGENTGUARD_API_KEY, () => {}, 15_000);
     expect(steps.map((s) => s.outcome)).toEqual(EXPECTED);
     expect(steps[1].detail).toContain("UNTRUSTED_DESTINATION");
     expect(outbox).toEqual([]);
@@ -37,7 +38,7 @@ describe("examples", () => {
   it.skipIf(!PY)("Python multi-agent example", async () => {
     // Async spawn: the in-process server must keep serving while Python runs.
     const child = spawn(PY!, [path.join(ROOT, "examples/python-multi-agent/demo.py")], {
-      env: { ...process.env, AGENTGUARD_URL: server.url, AGENTGUARD_API_KEY: env.AGENTGUARD_API_KEY, AGENTGUARD_JSON: "1", PYTHONDONTWRITEBYTECODE: "1" },
+      env: { ...process.env, AGENTGUARD_URL: server.url, AGENTGUARD_API_KEY: env.AGENTGUARD_API_KEY, AGENTGUARD_JSON: "1", AGENTGUARD_TIMEOUT: "15", PYTHONDONTWRITEBYTECODE: "1" },
     });
     let stdout = "";
     let stderr = "";
