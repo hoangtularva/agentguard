@@ -118,6 +118,9 @@ Offline mode enforces single use per process; use online mode for replicated too
 ### 3.8 Policies as code
 Templates (starter, strict approvals, internal-only), YAML export/import and policy unit tests: [policies/README.md](../policies/README.md).
 
+### 3.9 Approval notifications (opt-in)
+`npm run admin -- webhook <app> <url>` makes AgentGuard POST `approval.requested` / `approval.decided` events (ids and tool name only, never arguments), signed with `X-AgentGuard-Signature: sha256=HMAC(secret, timestamp + "." + body)`; get the secret with `npm run admin -- webhook-secret <app>`. One attempt, 3 s timeout; decisions never depend on delivery. Off by default.
+
 ## 4. Safety checklist
 
 - [ ] **Sinks declare `destinationArg`** and a realistic `risk`; free text goes in `contentArgs` (hashed in audit).

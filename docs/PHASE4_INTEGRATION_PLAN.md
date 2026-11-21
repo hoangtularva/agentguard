@@ -193,7 +193,7 @@ Each item is chosen for *measurable* benefit; performance items are done only af
 | O10 ✅ | **One-command demo**: `docker compose -f docker-compose.demo.yml up` (app + Postgres + optional Ollama profile) and a GitHub Codespaces/devcontainer config | Lower friction for people who fork | Medium | S |
 | O11 ✅ | **README demo media**: Playwright-recorded walkthrough video (`docs/media/demo.webm`) + full screenshot set light/dark/mobile | Open-source presentation | Medium | S |
 | O12 | **More models in the real-LLM track** (e.g. `llama3.2:3b`, `qwen2.5:1.5b`) on the frozen holdout — only within RAM/disk budget (≤ 2 GB each) | Shows results are not specific to one model | Low | M (CPU time) |
-| O13 | **Approval notifications via webhook** (outbound URL configured per app, HMAC-signed payload) — design + implementation, *disabled by default*; never sends without explicit config | Humans see REVIEW items without polling the UI | Low | S |
+| O13 ✅ | **Approval notifications via webhook** (outbound URL configured per app, HMAC-signed payload) — design + implementation, *disabled by default*; never sends without explicit config | Humans see REVIEW items without polling the UI | Low | S |
 
 Order inside P4.10: O6 → O1 → O2 → O3 → O7 → O8 → O4/O5 (after measuring) → O10 → O11 → O9 → O13 → O12.
 Update the §5 table: P4.10 = "Optimisations O1–O13".

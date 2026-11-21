@@ -21,6 +21,7 @@ import { startSession } from "@/server/enforcement/session";
 import type { SessionState } from "@/server/enforcement/types";
 import { type ApiPrincipal, agentKey, ed25519For, tokenAlgOf, tokenKeyFor } from "./apps";
 import { invalidateCatalog, resourceResolverFor, toolCatalogFor } from "./catalog";
+import { notifyLater } from "./webhooks";
 
 /** Short on purpose: a token authorizes one imminent call, not a future one. */
 export const DECISION_TOKEN_TTL_SECONDS = 60;
@@ -241,6 +242,16 @@ export async function check(db: DB, principal: ApiPrincipal, body: z.infer<typeo
     rationale: body.rationale,
     parentCallId: body.parentCallId,
   });
+  if (r.approvalId)
+    notifyLater(db, {
+      type: "approval.requested",
+      app: principal.app.id,
+      approvalId: r.approvalId,
+      callId: r.toolCallId,
+      tool: body.tool,
+      status: "pending",
+      expiresAt: r.approvalExpiresAt!,
+    });
   return {
     callId: r.toolCallId,
     decision: r.decision.decision,
