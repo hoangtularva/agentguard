@@ -39,6 +39,8 @@ Telling the model to "ignore instructions in documents" doesn't count as a contr
 
 ## 📸 Screenshots
 
+🎬 **[Watch the 40-second walkthrough](docs/media/demo.webm)** (injection blocked → approval inbox → hash-chained audit → external apps). Recorded with `npx tsx scripts/record-demo.ts`.
+
 | Agent Playground (light) | Approval Inbox |
 |---|---|
 | <img src="docs/screenshots/playground-injection-light.png" width="440"> | <img src="docs/screenshots/approvals-light.png" width="440"> |
