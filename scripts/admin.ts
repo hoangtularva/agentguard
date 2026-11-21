@@ -7,6 +7,8 @@
  *   npm run admin -- token-key <appId>     (offline verification key for tool services; keep secret)
  *   npm run admin -- token-alg <appId> hmac|ed25519   (decision-token signature; ed25519 = verify with a public key)
  *   npm run admin -- budget <appId> <n|off>         (max outbound actions per session)
+ *   npm run admin -- webhook <appId> <url|off>     (approval notifications; off by default)
+ *   npm run admin -- webhook-secret <appId>        (to verify X-AgentGuard-Signature)
  *   npm run admin -- audit-verify          (seal pending audit events, then verify the hash chain)
  *   npm run admin -- list
  *
@@ -16,6 +18,7 @@ import { createDatabase } from "@/server/db/client";
 import * as s from "@/server/db/schema";
 import { eq } from "drizzle-orm";
 import { sealAuditChain, verifyAuditChain } from "@/server/enforcement/audit-chain";
+import { validWebhookUrl, webhookSecretFor } from "@/server/integration/webhooks";
 import { API_SCOPES, type ApiScope, createApiKey, createApp, revokeApiKey, tokenKeyFor } from "@/server/integration/apps";
 
 const [cmd, ...rest] = process.argv.slice(2);
@@ -75,6 +78,20 @@ ${tokenKeyFor(app)}`);
       console.log(max ? `${app.id}: at most ${max} outbound action(s) per session.` : `${app.id}: no session budget.`);
       break;
     }
+    case "webhook": {
+      const [appId, url] = rest;
+      const [app] = await db.select().from(s.apps).where(eq(s.apps.id, appId ?? ""));
+      if (!app || app.id === "demo") throw new Error("Unknown app.");
+      if (url !== "off" && !validWebhookUrl(url ?? "")) throw new Error("usage: webhook <appId> <http(s) URL|off>");
+      await db.update(s.apps).set({ settings: { ...app.settings, webhookUrl: url === "off" ? undefined : url } }).where(eq(s.apps.id, app.id));
+      console.log(url === "off" ? `${app.id}: webhook disabled.` : `${app.id}: approval events will be POSTed to ${url}.`);
+      break;
+    }
+    case "webhook-secret": {
+      if (!process.env.AUTH_SECRET) throw new Error("Set AUTH_SECRET to the server's value first (the secret is derived from it).");
+      console.log(webhookSecretFor(rest[0] ?? ""));
+      break;
+    }
     case "audit-verify": {
       while ((await sealAuditChain(db)) === 1000);
       const v = await verifyAuditChain(db);
@@ -92,7 +109,7 @@ ${tokenKeyFor(app)}`);
       break;
     }
     default:
-      console.log("Commands: create-app <id> <name> | create-key <appId> <name> [--scopes a,b] [--agent ref] | revoke-key <appId> <keyId> | token-key <appId> | token-alg <appId> hmac|ed25519 | budget <appId> <n|off> | audit-verify | list");
+      console.log("Commands: create-app <id> <name> | create-key <appId> <name> [--scopes a,b] [--agent ref] | revoke-key <appId> <keyId> | token-key <appId> | token-alg <appId> hmac|ed25519 | budget <appId> <n|off> | webhook <appId> <url|off> | webhook-secret <appId> | audit-verify | list");
   }
   process.exit(0);
 }
