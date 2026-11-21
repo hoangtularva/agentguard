@@ -168,10 +168,11 @@ AgentGuard was red-teamed against itself; findings and fixes are in [docs/PHASE3
 
 ## 🗺️ Roadmap
 
-- External integration: `/v1` API, TS/Python SDKs, MCP gateway, tool-side verifier
-- External anchoring of the audit chain head
-- Delegation-chain provenance for multi-agent hand-offs, per-agent kill switch
-- Policy-as-code (YAML, templates, CI tests), more models in the real-LLM track, AgentDojo port
+Done in Phase 4: `/v1` API, TS/Python SDKs, MCP gateway, tool-side verifiers (HMAC + Ed25519), multi-agent hand-off provenance, kill switch and session budgets, hash-chained audit, policies as code, opt-in webhooks.
+
+- More models in the real-LLM track (on a re-frozen holdout) and an AgentDojo port
+- External anchoring of the audit chain head; OIDC for the approval UI
+- Framework adapters (LangGraph, Vercel AI SDK, CrewAI) as thin wrappers over the SDKs
 
 ## 📚 Documentation
 
