@@ -1,0 +1,37 @@
+# npm run policy -- test policies/templates/starter.yaml policies/tests/starter.cases.yaml
+cases:
+  - name: read internal data
+    tool: { name: search, kind: source, risk: low }
+    dataSensitivity: internal
+    expect: ALLOW
+  - name: read restricted data needs approval
+    tool: { name: search, kind: source, risk: low }
+    dataSensitivity: restricted
+    expect: REVIEW
+  - name: send to the destination the user gave
+    tool: { name: post, kind: sink, risk: medium }
+    destination: { value: "#team", inMandate: true, origin: [trusted_user] }
+    expect: ALLOW
+  - name: high-risk send to the user's destination needs approval
+    tool: { name: wire, kind: sink, risk: high }
+    destination: { value: "acct-1", inMandate: true, origin: [trusted_user] }
+    expect: REVIEW
+  - name: send to an address found in retrieved content
+    tool: { name: post, kind: sink, risk: medium }
+    destination: { value: "evil@x.test", origin: [untrusted_external] }
+    expect: BLOCK
+  - name: injection signal escalates an allowed send
+    tool: { name: post, kind: sink, risk: medium }
+    destination: { value: "#team", inMandate: true, origin: [trusted_user] }
+    signals: [injection_suspected]
+    expect: REVIEW
+  - name: restricted data never leaves
+    tool: { name: post, kind: sink, risk: low }
+    destination: { value: "#team", inMandate: true, origin: [trusted_user] }
+    dataSensitivity: restricted
+    expect: BLOCK
+  - name: tool the user did not authorize
+    tool: { name: delete_all, kind: sink, risk: critical }
+    destination: { value: "x", inMandate: true, origin: [trusted_user] }
+    inMandate: false
+    expect: BLOCK

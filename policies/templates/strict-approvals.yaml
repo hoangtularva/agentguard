@@ -1,0 +1,28 @@
+# Strict: reads up to internal run; every outbound action needs a human, and only to
+# destinations the user gave. Confidential+ data never leaves; restricted reads need approval.
+approvalTtlSeconds: 600
+rules:
+  - id: allow-read-up-to-internal
+    tools: ["*"]
+    conditions:
+      - { type: tool_kind, kind: source }
+      - { type: sensitivity_at_most, level: internal }
+    effect: allow
+  - id: review-read-confidential
+    tools: ["*"]
+    conditions:
+      - { type: tool_kind, kind: source }
+      - { type: sensitivity_at_least, level: confidential }
+    effect: review
+  - id: review-every-send-to-user-destination
+    tools: ["*"]
+    conditions:
+      - { type: tool_kind, kind: sink }
+      - { type: destination_in_mandate, value: true }
+    effect: review
+  - id: block-send-confidential
+    tools: ["*"]
+    conditions:
+      - { type: tool_kind, kind: sink }
+      - { type: sensitivity_at_least, level: confidential }
+    effect: block

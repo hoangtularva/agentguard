@@ -16,7 +16,8 @@ INBOX = "\n".join([
 
 
 def main():
-    ag = AgentGuard(os.environ.get("AGENTGUARD_URL", "http://localhost:3000"), os.environ["AGENTGUARD_API_KEY"])
+    ag = AgentGuard(os.environ.get("AGENTGUARD_URL", "http://localhost:3000"), os.environ["AGENTGUARD_API_KEY"],
+                    timeout=float(os.environ.get("AGENTGUARD_TIMEOUT", "2")))
     session = ag.start_session(user_ref="alice", agent_id="researcher", agents=["writer"],
                                prompt="Read my inbox and email a short Q3 summary to cfo@corp.test",
                                tools=["read_inbox", "send_email"])

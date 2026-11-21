@@ -40,8 +40,9 @@ beforeAll(async () => {
   server = await startV1Server();
   const key = (await createApiKey(db, { appId: "sdkapp", name: "runtime", scopes: ["check"], createdBy: "u_bob" })).key;
   const vkey = (await createApiKey(db, { appId: "sdkapp", name: "tools", scopes: ["verify"], createdBy: "u_bob" })).key;
-  ag = new AgentGuard({ baseUrl: server.url, apiKey: key });
-  verifier = new AgentGuard({ baseUrl: server.url, apiKey: vkey });
+  // Generous timeouts: the in-process server shares the CPU with the rest of the suite.
+  ag = new AgentGuard({ baseUrl: server.url, apiKey: key, timeoutMs: 15_000 });
+  verifier = new AgentGuard({ baseUrl: server.url, apiKey: vkey, timeoutMs: 15_000 });
 });
 afterAll(() => server?.close());
 

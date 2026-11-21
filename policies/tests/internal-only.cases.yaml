@@ -1,0 +1,15 @@
+cases:
+  - name: internal email allowed
+    tool: { name: send_email, kind: sink, risk: medium }
+    destination: { value: "boss@corp.example", inMandate: true, origin: [trusted_user] }
+    dataSensitivity: confidential
+    expect: ALLOW
+  - name: external email blocked even if the user named it
+    tool: { name: send_email, kind: sink, risk: medium }
+    destination: { value: "friend@gmail.example", inMandate: true, origin: [trusted_user] }
+    expect: BLOCK
+  - name: restricted data to internal is not covered (default deny)
+    tool: { name: send_email, kind: sink, risk: medium }
+    destination: { value: "boss@corp.example", inMandate: true, origin: [trusted_user] }
+    dataSensitivity: restricted
+    expect: BLOCK

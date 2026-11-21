@@ -16,6 +16,7 @@
     "bench": "tsx scripts/bench.ts",
     "openapi": "tsx scripts/openapi.ts",
     "admin": "tsx scripts/admin.ts",
+    "policy": "tsx scripts/policy.ts",
     "examples:setup": "tsx examples/setup.ts",
     "package": "node scripts/package.mjs",
     "bench:v1": "tsx --conditions=react-server scripts/bench-v1.ts",
@@ -60,6 +61,7 @@
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.0",
+    "yaml": "^2.9.1"
   }
 }

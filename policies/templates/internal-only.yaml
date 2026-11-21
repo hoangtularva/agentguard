@@ -1,0 +1,24 @@
+# Internal-only: outbound actions may only target company domains (edit the patterns).
+# Low/medium-risk sends of data up to confidential to those domains run; anything else is denied.
+approvalTtlSeconds: 900
+rules:
+  - id: allow-read-up-to-confidential
+    tools: ["*"]
+    conditions:
+      - { type: tool_kind, kind: source }
+      - { type: sensitivity_at_most, level: confidential }
+    effect: allow
+  - id: allow-send-internal
+    tools: ["*"]
+    conditions:
+      - { type: tool_kind, kind: sink }
+      - { type: destination_matches, patterns: ["*@corp.example", "https://*.corp.example/*"] }
+      - { type: tool_risk_at_most, level: medium }
+      - { type: sensitivity_at_most, level: confidential }
+    effect: allow
+  - id: block-send-external
+    tools: ["*"]
+    conditions:
+      - { type: tool_kind, kind: sink }
+      - { type: destination_not_matches, patterns: ["*@corp.example", "https://*.corp.example/*"] }
+    effect: block

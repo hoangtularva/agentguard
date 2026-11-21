@@ -29,6 +29,8 @@ jobs:
         run: npm test
       - name: Real PostgreSQL 16 tests
         run: npm run test:pg
+      - name: Policy templates (policy as code)
+        run: for p in starter strict-approvals internal-only; do npm run -s policy -- test policies/templates/$p.yaml policies/tests/$p.cases.yaml; done
       - name: Deterministic security benchmark
         run: npm run bench
       - name: Production build

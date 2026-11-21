@@ -58,14 +58,17 @@ export async function createPolicyVersion(
   const document = PolicyDocumentSchema.parse(params.document);
   return db.transaction(async (tx) => {
     const [latest] = await tx
-      .select({ version: policyVersions.version })
+      .select({ version: policyVersions.version, appId: policyVersions.appId })
       .from(policyVersions)
       .where(eq(policyVersions.policyId, params.policyId))
       .orderBy(desc(policyVersions.version))
       .limit(1);
     const version = (latest?.version ?? 0) + 1;
+    // A new version belongs to the same app as the policy's earlier versions.
+    const appId = latest?.appId ?? "demo";
     await tx.insert(policyVersions).values({
       id: `${params.policyId}@${version}`,
+      appId,
       policyId: params.policyId,
       version,
       name: params.name,
@@ -76,16 +79,18 @@ export async function createPolicyVersion(
     });
     await writeAudit(tx, {
       type: "policy.version_created",
+      appId,
       actorId: params.actorId,
       payload: { policyId: params.policyId, version, changeNote: params.changeNote },
     });
     if (params.activate) {
       await tx
         .insert(activePolicy)
-        .values({ policyId: params.policyId, version })
+        .values({ policyId: params.policyId, version, appId })
         .onConflictDoUpdate({ target: activePolicy.policyId, set: { version, updatedAt: new Date() } });
       await writeAudit(tx, {
         type: "policy.activated",
+        appId,
         severity: "warning",
         actorId: params.actorId,
         payload: { policyId: params.policyId, version },

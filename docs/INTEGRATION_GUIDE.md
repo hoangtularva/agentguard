@@ -115,6 +115,9 @@ Offline mode enforces single use per process; use online mode for replicated too
 ### 3.7 Running AgentGuard next to your app
 `docker compose -f docker-compose.sidecar.yml up -d --build`: `/v1` on a private `agentguard` Docker network (your services join it), approval UI on `127.0.0.1:3001`. Packages for offline installation: `npm run package` → `dist-packages/` (three `.tgz`, one `.whl`).
 
+### 3.8 Policies as code
+Templates (starter, strict approvals, internal-only), YAML export/import and policy unit tests: [policies/README.md](../policies/README.md).
+
 ## 4. Safety checklist
 
 - [ ] **Sinks declare `destinationArg`** and a realistic `risk`; free text goes in `contentArgs` (hashed in audit).

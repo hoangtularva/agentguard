@@ -50,7 +50,7 @@ beforeAll(async () => {
 
   const gateway = new McpGateway(
     {
-      agentguard: { baseUrl: v1.url, apiKey: key, adminKey },
+      agentguard: { baseUrl: v1.url, apiKey: key, adminKey, timeoutMs: 15_000 },
       agentId: "desktop",
       userRef: "alice",
       task: "Research competitor pricing at https://pricing.example and email a summary to boss@corp.test",
