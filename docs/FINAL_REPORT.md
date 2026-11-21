@@ -153,3 +153,27 @@ Small self-authored datasets; one small local model; idealized reviewer; demo id
 
 ## Next
 Phase 4 — integration with any codebase: [PHASE4_INTEGRATION_PLAN.md](PHASE4_INTEGRATION_PLAN.md).
+
+
+# Phase 4 report — integration with any codebase (2026-11-21)
+
+**Goal:** make AgentGuard usable by agents that live in other codebases, safely for the host app, with clean architecture.
+
+## What was built
+- **Ports & Adapters core**: the PEP split into use cases (`check-tool-call`, `execute-approved`, `session`, `execution`) behind ports; the demo and external apps share the same PDP, provenance, approvals and audit.
+- **Multi-tenancy** (migrations 0001–0004): apps, API keys (SHA-256, scopes, agent binding, revocation), tool specs, resource labels, decision tokens, `app_id` everywhere; in-place upgrade tested and done on the Docker PostgreSQL.
+- **`/v1` decision API** (OpenAPI generated from the Zod schemas, drift-tested), decision-only mode with single-use **decision tokens** (HMAC or Ed25519), approval consume, result reporting, per-key rate limits.
+- **Integrations**: zero-dependency TypeScript and Python SDKs (fail closed, privacy mode), **tool-side verifiers**, an **MCP gateway** (no code changes), runnable examples proven in CI, sidecar compose, offline packages (`npm run package`).
+- **Apps & API keys UI**, app labels in the Approval Inbox and Security Events, kill switch, session budgets.
+- **Hardening & extras**: hash-chained audit with verification, policies as code (templates + tests), opt-in signed webhooks, supply-chain CI (audit gate, CodeQL, gitleaks, Dependabot), devcontainer, demo video.
+
+## Verification (latest run)
+- Vitest 120/120 (unit + integration incl. SDK e2e over HTTP, TS↔Python conformance, MCP gateway, examples); real PostgreSQL 16: 14/14 (concurrency for approvals, consume, token verification, audit sealing); Playwright 22/22 on the Docker production stack; simulated benchmark 37/37 deterministic; policy templates 15/15 cases.
+- Manual end-to-end on Docker: create app and key in the UI → TS example (ran / BLOCK / REVIEW, nothing sent) → approve in the UI → single consume → key revoked (401).
+- `/v1/check` on PostgreSQL 16: p50 13.8–17.8 ms, p95 ≤ 31.5 ms, 92 checks/s with 8 clients ([benchmark-v1.md](benchmark-v1.md)).
+- GitHub Actions: CI and Security green on `main`.
+
+## Not done / limits
+- O12 (more models in the real-LLM track) deferred: needs a model download and hours of CPU, and a re-frozen holdout.
+- A process holding a `check` key is trusted to report the user's real request (threat T42). SDK integration is cooperative unless tools verify tokens. Demo identities are not authentication.
+- Dependabot opened 8 dependency PRs; none merged (the TypeScript 7 bump fails CI).

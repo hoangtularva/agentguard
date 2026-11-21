@@ -165,7 +165,7 @@ Priority order: M1 → M2/M3 → M4 → M5 → M6 → M7 → M8.
 | P4.7 | Examples (TS, Python, MCP) + automated proof | **done**: examples/ (TS SDK, Python SDK, MCP gateway CLI + unmodified mock MCP server), `examples:setup`; tests/integration/examples.test.ts proves the same outcome (ran / BLOCK / REVIEW, nothing sent) for all three |
 | P4.8 | Packaging (tarballs, wheel, sidecar) + Apps/API keys UI + INTEGRATION_GUIDE | **done**: `npm run package` (3 tgz + wheel, install-tested in a clean dir/venv), docker-compose.sidecar.yml (run: /v1 reachable from another container on the private network), Apps & API keys UI (create app, key shown once, two-step revoke, tools/agents) + app labels in Inbox/Events, docs/INTEGRATION_GUIDE.md, 2 e2e tests; verified on the Docker stack (TS example → ran/BLOCK/REVIEW, approve in UI → consume once) |
 | P4.9 | Security review of new surface + latency + docs | **done**: tests/integration/v1-security.test.ts (5 attacks: forged trusted source, cross-tenant session/call/approval/consume, demo execute of external approval, key echo, rate limit + Retry-After); bench:v1 baseline (PG16 p50 13.5–20.5 ms, PGlite 22–29 ms); threat model T36–T47, architecture, case study, interview guide, README |
-| P4.10 | Optimisations O1–O13 (§7) | todo |
+| P4.10 | Optimisations O1–O13 (§7) | **done except O12**: O1 hash-chained audit, O2 Ed25519 tokens, O3 rate limit + Retry-After, O4 /v1 round trips (benchmark-v1.md), O5 measured (no indexes needed), O6 supply-chain CI, O7 hand-off provenance, O8 kill switch + budgets, O9 policies as code, O10 devcontainer + Ollama profile, O11 video + screenshots, O13 webhooks. **O12 deferred**: needs a ~2 GB model download (user permission) and hours of CPU; the holdout must be re-frozen first because src changed |
 
 ## 6. Decisions already made
 - Decision-only mode for external apps (host executes) — keeps host secrets and side effects in the host.
@@ -192,7 +192,7 @@ Each item is chosen for *measurable* benefit; performance items are done only af
 | O9 ✅ | **Policy-as-code**: import/export YAML, policy templates (e.g. "no external email of confidential data", "exports need approval"), `agentguard policy test` CLI with fixtures | Easier adoption & review in PRs | Medium | M |
 | O10 ✅ | **One-command demo**: `docker compose -f docker-compose.demo.yml up` (app + Postgres + optional Ollama profile) and a GitHub Codespaces/devcontainer config | Lower friction for people who fork | Medium | S |
 | O11 ✅ | **README demo media**: Playwright-recorded walkthrough video (`docs/media/demo.webm`) + full screenshot set light/dark/mobile | Open-source presentation | Medium | S |
-| O12 | **More models in the real-LLM track** (e.g. `llama3.2:3b`, `qwen2.5:1.5b`) on the frozen holdout — only within RAM/disk budget (≤ 2 GB each) | Shows results are not specific to one model | Low | M (CPU time) |
+| O12 ⏸ | **More models in the real-LLM track** (e.g. `llama3.2:3b`, `qwen2.5:1.5b`) on the frozen holdout — only within RAM/disk budget (≤ 2 GB each) | Shows results are not specific to one model | Low | M (CPU time) |
 | O13 ✅ | **Approval notifications via webhook** (outbound URL configured per app, HMAC-signed payload) — design + implementation, *disabled by default*; never sends without explicit config | Humans see REVIEW items without polling the UI | Low | S |
 
 Order inside P4.10: O6 → O1 → O2 → O3 → O7 → O8 → O4/O5 (after measuring) → O10 → O11 → O9 → O13 → O12.
