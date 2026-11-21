@@ -15,8 +15,32 @@ const compiled = (id: string, spec: unknown) => {
   return c;
 };
 
+/**
+ * Per-app catalog cache (5 s). Saving a tool in this process invalidates it at once; other
+ * instances pick changes up within the TTL.
+ */
+const TTL_MS = 5_000;
+const cache = globalThis as unknown as { __agCatalog?: Map<string, { at: number; value: Promise<unknown> }> };
+function memo<T>(key: string, load: () => Promise<T>): Promise<T> {
+  cache.__agCatalog ??= new Map();
+  const hit = cache.__agCatalog.get(key);
+  if (hit && Date.now() - hit.at < TTL_MS) return hit.value as Promise<T>;
+  const value = load();
+  cache.__agCatalog.set(key, { at: Date.now(), value });
+  value.catch(() => cache.__agCatalog?.delete(key));
+  return value;
+}
+export function invalidateCatalog(appId: string) {
+  cache.__agCatalog?.delete(`tools:${appId}`);
+  cache.__agCatalog?.delete(`labels:${appId}`);
+}
+
 /** Active (latest version per name) ToolSpecs of an external app. */
-export async function toolCatalogFor(db: DB, appId: string): Promise<ToolCatalog> {
+export function toolCatalogFor(db: DB, appId: string): Promise<ToolCatalog> {
+  return memo(`tools:${appId}`, () => loadTools(db, appId));
+}
+
+async function loadTools(db: DB, appId: string): Promise<ToolCatalog> {
   const rows = await db
     .select()
     .from(s.toolSpecs)
@@ -34,7 +58,8 @@ export async function toolCatalogFor(db: DB, appId: string): Promise<ToolCatalog
  * mandate's resource scope still bounds what the agent may touch.
  */
 export async function resourceResolverFor(db: DB, appId: string, settings: Record<string, unknown>): Promise<ResourceResolver> {
-  const labels = (await db.select().from(s.resourceLabels).where(eq(s.resourceLabels.appId, appId))).sort(
+  const rows = await memo(`labels:${appId}`, () => db.select().from(s.resourceLabels).where(eq(s.resourceLabels.appId, appId)));
+  const labels = [...rows].sort(
     (a, b) => b.priority - a.priority || b.pattern.length - a.pattern.length,
   );
   const fallback = SensitivitySchema.catch("internal").parse(settings.defaultSensitivity);

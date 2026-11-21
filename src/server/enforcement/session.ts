@@ -129,9 +129,17 @@ export async function ingestOutput(db: DB, state: SessionState, toolCallId: stri
 
 /** Identity: the session row is the source of truth, not the caller's claim. */
 export async function verifyIdentity(db: DB, state: SessionState, call: ProposedToolCall): Promise<Identity> {
-  const [row] = await db.select().from(s.agentSessions).where(eq(s.agentSessions.id, state.id)).limit(1);
-  const [user] = row ? await db.select().from(s.users).where(eq(s.users.id, row.userId)).limit(1) : [];
-  const [agent] = row ? await db.select().from(s.agents).where(eq(s.agents.id, call.agentId)).limit(1) : [];
+  // One round trip: session row + its user + the calling agent.
+  const [hit] = await db
+    .select({ row: s.agentSessions, user: s.users, agent: s.agents })
+    .from(s.agentSessions)
+    .leftJoin(s.users, eq(s.users.id, s.agentSessions.userId))
+    .leftJoin(s.agents, eq(s.agents.id, call.agentId))
+    .where(eq(s.agentSessions.id, state.id))
+    .limit(1);
+  const row = hit?.row;
+  const user = hit?.user ?? undefined;
+  const agent = hit?.agent ?? undefined;
   return {
     userOk: !!row && !!user && row.userId === state.userId,
     agentOk:

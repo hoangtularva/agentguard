@@ -44,13 +44,19 @@ export async function sealAuditChain(db: DB, limit = 1000): Promise<number> {
       .where(isNull(s.auditEvents.chainPos))
       .orderBy(asc(s.auditEvents.createdAt), asc(s.auditEvents.id))
       .limit(limit);
+    if (rows.length === 0) return 0;
     let pos = head?.pos ?? 0;
     let prev = head?.hash ?? GENESIS;
-    for (const e of rows) {
+    const sealed = rows.map((e) => {
       pos += 1;
       prev = eventDigest(prev, e);
-      await tx.update(s.auditEvents).set({ chainPos: pos, chainHash: prev }).where(sql`${s.auditEvents.id} = ${e.id}`);
-    }
+      return sql`(${e.id}, ${pos}::int, ${prev})`;
+    });
+    // One statement per batch keeps the sealer's transaction (and its lock) short.
+    await tx.execute(sql`
+      update audit_events as a set chain_pos = v.pos, chain_hash = v.hash
+      from (values ${sql.join(sealed, sql`, `)}) as v(id, pos, hash)
+      where a.id = v.id`);
     return rows.length;
   });
 }

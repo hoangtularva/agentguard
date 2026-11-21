@@ -89,8 +89,9 @@ export async function checkToolCall(deps: EnforcementDeps, state: SessionState, 
     policyId: decision.policyId,
     policyVersion: decision.policyVersion,
     provenance: snapshot,
-    // ALLOW starts as "failed" and is flipped to "executed" only inside the execution transaction.
-    status: decision.decision === "ALLOW" ? "failed" : status,
+    // ALLOW starts as "failed" and is flipped to "executed" only inside the execution transaction;
+    // in decision-only mode (no runner) it is "allowed" until the host reports the result.
+    status: decision.decision === "ALLOW" ? (deps.runner ? "failed" : "allowed") : status,
     rationale: call.rationale?.slice(0, 1000) ?? null,
     evalLatencyMs,
   });
@@ -156,7 +157,6 @@ async function authorizeForHost(
 ) {
   return deps.db.transaction(async (raw) => {
     const tx = raw as unknown as DB;
-    await tx.update(s.toolCalls).set({ status: "allowed" }).where(eq(s.toolCalls.id, toolCallId));
     const token = await deps.tokens?.issue(tx, { appId: state.appId, agentId: call.agentId, toolCallId, tool: call.tool, args });
     await writeAudit(tx, {
       type: "tool_call.allowed",
