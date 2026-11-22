@@ -17,8 +17,6 @@ AgentGuard uses two licenses so that anyone can integrate it freely, while impro
 - If you **modify** the AgentGuard server or MCP gateway and make it available to others (including as a hosted service), you must offer them the source of your modified version under the AGPL.
 - Talking to the AgentGuard server over its HTTP API does not make your application a derivative work of the server.
 
-**Earlier versions.** Commits up to and including `734a862` (2026-11-22) were published under the MIT License. Copies obtained under those terms keep them; this change applies to later versions.
-
 **Commercial licensing.** The copyright holder can offer the AGPL-covered parts under separate commercial terms for organisations that cannot use the AGPL. Contact: open an issue titled "Commercial licensing" (no private details in the issue).
 
 *This file explains the intent; the license texts are what apply. It is not legal advice.*

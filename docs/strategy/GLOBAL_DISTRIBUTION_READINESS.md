@@ -72,5 +72,5 @@ Deliberately **not** now: a docs website, a hosted SaaS, a marketplace listing t
 
 1. **New name**: approve a rename and pick from candidates (to be researched and checked for availability).
 2. **Publishing**: approve creating npm and PyPI accounts/organisations and publishing packages (outward-facing, permanent version numbers).
-3. **License for future paid parts**: keep everything MIT for now (recommended until demand is known), and decide later whether paid add-ons live in a separate, commercially licensed package.
+3. **Paid parts**: the server is AGPL-3.0 and the SDKs MIT (see [LICENSING.md](../../LICENSING.md)); decide later, from user feedback, whether to offer a commercial license or paid add-ons in a separate package.
 4. **Support promise**: state publicly what response time a < 5 h/week maintainer can offer (e.g. "best effort, security reports within 7 days").

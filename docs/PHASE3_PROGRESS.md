@@ -16,4 +16,4 @@
 | 10 | **Phase 4 plan** (multi-method integration for any codebase) | docs/PHASE4_INTEGRATION_PLAN.md | (next) |
 | 11 | Perf test (real PG16, 50k events) | overview p95 ≈ 40 ms, events ≈ 5 ms → no indexes needed | (this) |
 | 12 | Docker rebuild + e2e on stack | 20/20; e2e keys made unique (persistent DB) | (this) |
-| 13 | Open-source release: README, LICENSE (MIT), SECURITY, CONTRIBUTING, templates, CI, screenshots, case study results, Phase 3 final report | done — **PHASE 3 COMPLETE** | (this) |
+| 13 | Open-source release: README, LICENSE, SECURITY, CONTRIBUTING, templates, CI, screenshots, case study results, Phase 3 final report | done — **PHASE 3 COMPLETE** | (this) |
