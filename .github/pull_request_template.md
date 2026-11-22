@@ -9,3 +9,5 @@
 - [ ] `npm run lint && npm run typecheck`
 - [ ] `npm test`
 - [ ] `npm run test:e2e` (if UI/API changed)
+
+- [ ] I agree that my contribution is licensed as described in [CONTRIBUTING.md](../CONTRIBUTING.md#licensing-of-contributions).

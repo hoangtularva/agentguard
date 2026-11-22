@@ -35,3 +35,9 @@ npm run bench            # deterministic security benchmark must stay 100% / det
 ## Commit style
 
 Conventional-ish prefixes (`feat:`, `fix:`, `security:`, `bench:`, `docs:`), with what changed and why in the body.
+
+## Licensing of contributions
+
+AgentGuard is dual-licensed by directory (see [LICENSING.md](LICENSING.md)): contributions to `packages/core`, `packages/sdk-ts` and `sdk/python` are made under the MIT License; all other contributions under the AGPL-3.0.
+
+The maintainer may also offer AgentGuard under commercial terms. So that this stays possible, by submitting a contribution you confirm that you wrote it (or have the right to submit it) and you grant the maintainer a perpetual, worldwide, irrevocable, royalty-free license to use, modify and relicense your contribution, including under other license terms. You keep your copyright. If you do not agree, please open an issue instead of a pull request.
