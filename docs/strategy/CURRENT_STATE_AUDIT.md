@@ -1,8 +1,8 @@
 # Current state audit
 
-*Audited 2026-11-22 at commit `3fd0b44` (51 commits). Read-only: no code, schema or dependency was changed for this audit.*
+*Audited 2026-11-22 at commit `f78ef01` (51 commits). Read-only: no code, schema or dependency was changed for this audit.*
 
-**Evidence gathered for this audit.** `npx vitest run` 120/120 (23 files) · `npm run test:pg` 14/14 (PostgreSQL 16) · `tsc --noEmit` and `eslint .` clean · three policy templates pass their cases · a fresh `git clone` + `npm ci` (98 s) + `next dev` answered `/`, `/v1/health` and demo sign-in with 200. Playwright 22/22 and the Docker stack were last run on 2026-11-21 (after `cc3bdb1`); nothing in the UI has changed since.
+**Evidence gathered for this audit.** `npx vitest run` 120/120 (23 files) · `npm run test:pg` 14/14 (PostgreSQL 16) · `tsc --noEmit` and `eslint .` clean · three policy templates pass their cases · a fresh `git clone` + `npm ci` (98 s) + `next dev` answered `/`, `/v1/health` and demo sign-in with 200. Playwright 22/22 and the Docker stack were last run on 2026-11-21 (after `951a684`); nothing in the UI has changed since.
 
 ## 1. Classification
 

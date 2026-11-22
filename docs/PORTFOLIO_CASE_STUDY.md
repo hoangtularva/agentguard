@@ -64,7 +64,7 @@ Two separate tracks; the numbers never mix:
 | | Simulated track | Real-LLM track |
 |---|---|---|
 | Agent | deterministic planner that *always* obeys injected instructions (measures the guard, zero variance) | qwen2.5:3b via Ollama (Q4_K_M, digest 357c53fb…), temperature 0, seeds 42/43/44, defensive system prompt in both modes |
-| Dataset | 37 scenarios: 12 legit (incl. false-positive checks), 15 agent attacks, 10 approval attacks | llm-v2: **32 DEV** (used to find bugs) + **32 HOLDOUT** (run once on frozen commit `078b567`), 13 categories incl. benign look-alikes |
+| Dataset | 37 scenarios: 12 legit (incl. false-positive checks), 15 agent attacks, 10 approval attacks | llm-v2: **32 DEV** (used to find bugs) + **32 HOLDOUT** (run once on frozen commit `8505766`), 13 categories incl. benign look-alikes |
 | Modes | unguarded / guarded (oracle reviewer) / rubber-stamp reviewer | unguarded / guarded (oracle reviewer) |
 | Outcomes | attack success, block/intercept, FP, completion, replay prevention, latency | attack *not triggered* / *blocked* / *reviewed* / *succeeded*; task completed / failed (model vs guard); calls to user-unprovided destinations |
 | Stats | determinism across runs | Wilson 95% CIs (optimistic: runs of a scenario are correlated) |

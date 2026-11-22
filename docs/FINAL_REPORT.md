@@ -44,12 +44,12 @@ Value-level provenance only; session-level sensitivity taint; regex injection si
 
 ## Git commits
 ```
-1b9b559 fix(approvals): complete a session only when none of its approvals remain open
-4cd2160 docs: README, architecture, threat model, competitive analysis, benchmark, learning notes, decisions
-e63a144 test,ops: Playwright e2e, wire-protocol DB test, Docker Compose (P2/P4)
-179ae3d feat(ui): dashboard, playground, attack lab, approvals, events, policy studio (P3)
-8f3af01 feat(agent,bench): agent runtime, simulated + Claude planners, 37-scenario security benchmark (P1/P2)
-f0e513e feat(core): policy engine, PEP, provenance, approval binding (P0)
+17a2c68 fix(approvals): complete a session only when none of its approvals remain open
+22abab1 docs: README, architecture, threat model, competitive analysis, benchmark, learning notes, decisions
+8ecfbea test,ops: Playwright e2e, wire-protocol DB test, Docker Compose (P2/P4)
+1b45a33 feat(ui): dashboard, playground, attack lab, approvals, events, policy studio (P3)
+3b5f452 feat(agent,bench): agent runtime, simulated + Claude planners, 37-scenario security benchmark (P1/P2)
+3a049d4 feat(core): policy engine, PEP, provenance, approval binding (P0)
 ```
 Plus the commit containing this report. Nothing was pushed (no remote configured).
 
@@ -104,11 +104,11 @@ See [README.md](../README.md): `npm install`, `cp .env.example .env`, `npm run d
 
 ## Phase 2 commits
 ```
-9dba276 feat(db): real PostgreSQL 16 integration suite; atomic approval claim+execution
-bebfa42 feat(llm): provider adapter (simulated/Ollama/Anthropic), held-out test set, real-LLM benchmark track
-6c7d4ac chore(deps): fix audit findings
-f9dd12f security: Sec-Fetch-Site CSRF check, single-flight guard for LLM/benchmark runs, cookie max-age
-7d338b4 bench(llm): real-LLM run 1 on held-out set + H04 oracle fix; Phase 2 docs
+9197675 feat(db): real PostgreSQL 16 integration suite; atomic approval claim+execution
+1c0b3aa feat(llm): provider adapter (simulated/Ollama/Anthropic), held-out test set, real-LLM benchmark track
+8f41a63 chore(deps): fix audit findings
+c6f908d security: Sec-Fetch-Site CSRF check, single-flight guard for LLM/benchmark runs, cookie max-age
+38f1a6d bench(llm): real-LLM run 1 on held-out set + H04 oracle fix; Phase 2 docs
 ```
 Plus the final commit containing this report. Nothing was pushed (no remote).
 
@@ -127,7 +127,7 @@ Plus the final commit containing this report. Nothing was pushed (no remote).
 |---|---|---|
 | Real-LLM benchmark ran | ✅ | qwen2.5:3b via Ollama; DEV (2 runs) + HOLDOUT (3 seeds) — `docs/benchmark-llm-v2-*.md`, raw JSON in `docs/results/` |
 | Guarded vs unguarded results | ✅ | HOLDOUT: ASR 66.7% → 0.0% (CI 0–6%), completion 97.2% both, FP 2/100 |
-| Holdout evaluation set | ✅ | `V2_HOLDOUT` (32), run once on frozen commit `078b567` (interrupted once, resumed with `--resume`; `src` unchanged) |
+| Holdout evaluation set | ✅ | `V2_HOLDOUT` (32), run once on frozen commit `8505766` (interrupted once, resumed with `--resume`; `src` unchanged) |
 | Security audit within scope | ✅ | `docs/PHASE3_FINDINGS.md`: 10 findings, CSRF/XSS/SQLi/SSRF/secret/approval checks |
 | No open confirmed Critical/High | ✅ | F1 & F3 (High) fixed/mitigated with regression tests |
 | Regression tests pass | ✅ | Vitest 75/75; Playwright 20/20 (incl. 7 security) |

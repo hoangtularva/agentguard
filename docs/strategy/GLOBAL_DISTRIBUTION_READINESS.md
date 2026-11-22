@@ -1,6 +1,6 @@
 # Global distribution readiness
 
-*Question: can a developer abroad **find**, **install**, **understand** and **use** AgentGuard without the author's help? Checked 2026-11-22 at commit `3fd0b44`. Constraint for every recommendation: one maintainer, under 5 hours a week.*
+*Question: can a developer abroad **find**, **install**, **understand** and **use** AgentGuard without the author's help? Checked 2026-11-22 at commit `f78ef01`. Constraint for every recommendation: one maintainer, under 5 hours a week.*
 
 ## Verdict
 
