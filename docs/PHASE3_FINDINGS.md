@@ -1,6 +1,6 @@
 # Phase 3 security findings (red team, 2026-11-08)
 
-**Scope:** the local AgentGuard deployment only (Docker stack on `127.0.0.1:3000` + dev server), synthetic data. No external systems were scanned or attacked.
+**Scope:** the local Callwrit deployment only (Docker stack on `127.0.0.1:3000` + dev server), synthetic data. No external systems were scanned or attacked.
 **Method:** black-box HTTP probing with `curl` against the production build in Docker, code review, then a regression test for every confirmed finding.
 
 Severity uses the impact *if the demo were reachable by more than one person* (e.g. a shared lab or a mis-bound port). On a single-user laptop bound to localhost, most identity findings are lower risk. They are still fixed, because a portfolio security project should not ship them.
@@ -9,7 +9,7 @@ Severity uses the impact *if the demo were reachable by more than one person* (e
 |---|---|---|---|---|
 | F1 | Requests without a session cookie were silently treated as **Alice** (implicit default identity) | **High** | Fixed | `security.spec.ts` "API mutations without a session are rejected (401)", "pages without a session show the demo sign-in" |
 | F2 | Forged identity cookie (bad HMAC) | — | **Pass** (already rejected) | `security.spec.ts` F2, `identity.test.ts` |
-| F3 | `POST /api/identity` let anyone become **approver Bob** and then write policy (verified: `200` on policy write) | **High** | Mitigated: demo sign-in gated behind `AGENTGUARD_DEMO_AUTH` (off by default in production; compose enables it explicitly and binds to 127.0.0.1); sign-out added. Real auth (OIDC) remains out of scope and is documented as such | `identity.test.ts` "demo sign-in is off in production unless explicitly enabled" |
+| F3 | `POST /api/identity` let anyone become **approver Bob** and then write policy (verified: `200` on policy write) | **High** | Mitigated: demo sign-in gated behind `CALLWRIT_DEMO_AUTH` (off by default in production; compose enables it explicitly and binds to 127.0.0.1); sign-out added. Real auth (OIDC) remains out of scope and is documented as such | `identity.test.ts` "demo sign-in is off in production unless explicitly enabled" |
 | F4 | **IDOR / over-broad reads**: a member (Mallory) could read Alice's pending action with its exact arguments (`/approvals`), her session audit record (`/sessions/:id`) and events | **Medium** | Fixed: all read models scoped to the viewer; members see only their own data; approvers/admins see all; foreign session ids return 404 (no existence oracle) | `security.spec.ts` "another member cannot read Alice's pending action, session or events" |
 | F5 | Unbounded request bodies: a 5 MB JSON was fully read and parsed before validation (6.2 s) | Low | Fixed: 64 KB cap, enforced by both Content-Length and a streamed byte count → 413 | `security.spec.ts` "oversized JSON bodies are refused with 413" |
 | F6 | No Content-Security-Policy | Low | Fixed: CSP with `default-src 'self'`, `object-src 'none'`, `frame-ancestors 'none'`, `form-action 'self'`. `script-src` still needs `'unsafe-inline'` (Next.js bootstrap without nonces), so this is a partial XSS mitigation | `security.spec.ts` "a Content-Security-Policy is sent" |

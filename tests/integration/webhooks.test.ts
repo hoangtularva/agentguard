@@ -58,7 +58,7 @@ describe("approval webhooks", () => {
     expect(Object.keys(payload).sort()).toEqual(["app", "approvalId", "callId", "expiresAt", "sentAt", "status", "tool", "type"]);
     expect(body).not.toContain("acct-secret-payee");
     expect(body).not.toContain("424242");
-    expect(headers["x-agentguard-signature"]).toBe(signWebhook("hooked", String(headers["x-agentguard-timestamp"]), body));
-    expect(signWebhook("other-app", String(headers["x-agentguard-timestamp"]), body)).not.toBe(headers["x-agentguard-signature"]);
+    expect(headers["x-callwrit-signature"]).toBe(signWebhook("hooked", String(headers["x-callwrit-timestamp"]), body));
+    expect(signWebhook("other-app", String(headers["x-callwrit-timestamp"]), body)).not.toBe(headers["x-callwrit-signature"]);
   });
 });

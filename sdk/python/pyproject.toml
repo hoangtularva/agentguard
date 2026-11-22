@@ -3,9 +3,9 @@ requires = ["setuptools>=84.2.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "agentguard-sdk"
+name = "callwrit"
 version = "0.1.0"
-description = "Guard AI agent tool calls with an AgentGuard server (ALLOW / REVIEW / BLOCK, decision tokens). Zero dependencies."
+description = "Guard AI agent tool calls with an Callwrit server (ALLOW / REVIEW / BLOCK, decision tokens). Zero dependencies."
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10"
@@ -15,4 +15,4 @@ dependencies = []
 ed25519 = ["cryptography>=42"]
 
 [tool.setuptools]
-packages = ["agentguard"]
+packages = ["callwrit"]

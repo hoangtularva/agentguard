@@ -2,7 +2,7 @@ import { type KeyObject, createHmac, createPrivateKey, createPublicKey, sign, ti
 import { hashCanonical } from "./canonical";
 
 /**
- * Decision tokens: proof, checkable by the tool itself, that AgentGuard allowed THIS call.
+ * Decision tokens: proof, checkable by the tool itself, that Callwrit allowed THIS call.
  *
  *   agt1.<base64url(JSON payload)>.<base64url(HMAC-SHA256(key, "agt1." + payload))>   shared-key
  *   agt2.<base64url(JSON payload)>.<base64url(Ed25519(privateKey, "agt2." + payload))> public-key
@@ -40,7 +40,7 @@ const ED_SPKI = Buffer.from("302a300506032b6570032100", "hex");
 
 /** Per-app signing key derived from a server secret, so no signing key is stored at rest. */
 export function deriveTokenKey(serverSecret: string, appId: string, keyVersion: number): string {
-  return createHmac("sha256", serverSecret).update(`agentguard/decision-token/${appId}/${keyVersion}`).digest("hex");
+  return createHmac("sha256", serverSecret).update(`callwrit/decision-token/${appId}/${keyVersion}`).digest("hex");
 }
 
 /**
@@ -48,7 +48,7 @@ export function deriveTokenKey(serverSecret: string, appId: string, keyVersion: 
  * key (base64url, 32 bytes) can be handed to any tool service: it verifies without a secret.
  */
 export function deriveEd25519KeyPair(serverSecret: string, appId: string, keyVersion: number): { privateKey: KeyObject; publicKey: string } {
-  const seed = createHmac("sha256", serverSecret).update(`agentguard/decision-token-ed25519/${appId}/${keyVersion}`).digest();
+  const seed = createHmac("sha256", serverSecret).update(`callwrit/decision-token-ed25519/${appId}/${keyVersion}`).digest();
   const privateKey = createPrivateKey({ key: Buffer.concat([ED_PKCS8, seed]), format: "der", type: "pkcs8" });
   const raw = createPublicKey(privateKey).export({ format: "der", type: "spki" }).subarray(ED_SPKI.length);
   return { privateKey, publicKey: b64(raw) };
@@ -83,7 +83,7 @@ export function verifyDecisionToken(
 ): TokenCheck {
   const parts = typeof token === "string" ? token.split(".") : [];
   if (parts.length !== 3 || (parts[0] !== PREFIX && parts[0] !== PREFIX_ED))
-    return { ok: false, code: "MALFORMED", message: "Not an AgentGuard decision token." };
+    return { ok: false, code: "MALFORMED", message: "Not an Callwrit decision token." };
   const [kind, body, sig] = parts;
   const got = Buffer.from(sig, "base64url");
   if (kind === PREFIX) {

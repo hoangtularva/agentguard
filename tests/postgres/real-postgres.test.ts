@@ -24,7 +24,7 @@ const MIGRATION_COUNT = journal.entries.length;
  * connections, so row locks and unique constraints are exercised across sessions.
  */
 const PORT = 54329;
-const URL = `postgres://agentguard:local-test-only@127.0.0.1:${PORT}/agentguard_test`;
+const URL = `postgres://callwrit:local-test-only@127.0.0.1:${PORT}/callwrit_test`;
 let pg: EmbeddedPostgres;
 let db: DB;
 let pep: EnforcementPoint;
@@ -33,7 +33,7 @@ const corpus: Corpus = new Map(DEFAULT_CORPUS.map((c) => [c.id, c]));
 beforeAll(async () => {
   pg = new EmbeddedPostgres({
     databaseDir: path.resolve(`.data/pg-test-${Date.now()}`),
-    user: "agentguard",
+    user: "callwrit",
     password: "local-test-only",
     port: PORT,
     persistent: false, // throw-away test cluster, removed on stop
@@ -41,7 +41,7 @@ beforeAll(async () => {
   });
   await pg.initialise();
   await pg.start();
-  await pg.createDatabase("agentguard_test");
+  await pg.createDatabase("callwrit_test");
   process.env.DATABASE_POOL_MAX = "10";
   db = await createDatabase({ url: URL });
   pep = new EnforcementPoint(db, { corpus, resolvePolicy: dbPolicyResolver(db) });
@@ -213,14 +213,14 @@ describe("real PostgreSQL 16", () => {
   });
 
   it("survives killed connections (pg_terminate_backend) and keeps working", async () => {
-    await db.execute(sql`select pg_terminate_backend(pid) from pg_stat_activity where usename = 'agentguard' and pid <> pg_backend_pid() and datname = 'agentguard_test'`);
+    await db.execute(sql`select pg_terminate_backend(pid) from pg_stat_activity where usename = 'callwrit' and pid <> pg_backend_pid() and datname = 'callwrit_test'`);
     await new Promise((r) => setTimeout(r, 300));
     const { approvalId } = await pendingApproval("after-kill@contoso.example");
     expect(approvalId).toBeTruthy();
   });
 
   it("fails closed when the database is unreachable", async () => {
-    await expect(createDatabase({ url: `postgres://agentguard:x@127.0.0.1:${PORT + 1}/nope` })).rejects.toThrow();
+    await expect(createDatabase({ url: `postgres://callwrit:x@127.0.0.1:${PORT + 1}/nope` })).rejects.toThrow();
   });
   it("/v1: concurrent consume of one approval and concurrent token verification each succeed exactly once", async () => {
     await createApp(db, { id: "pgapp", name: "PG app", createdBy: "u_bob" });

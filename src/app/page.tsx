@@ -108,7 +108,7 @@ export default async function OverviewPage() {
           ) : (
             <dl className="space-y-2.5 text-sm">
               <div className="flex justify-between"><dt className="text-muted-foreground">Attack success, no guard</dt><dd className="font-medium tabular">{pct(m.attackSuccessRate.baseline)}</dd></div>
-              <div className="flex justify-between"><dt className="text-muted-foreground">Attack success, AgentGuard</dt><dd className="font-medium text-allow tabular">{pct(m.attackSuccessRate.guarded)}</dd></div>
+              <div className="flex justify-between"><dt className="text-muted-foreground">Attack success, Callwrit</dt><dd className="font-medium text-allow tabular">{pct(m.attackSuccessRate.guarded)}</dd></div>
               <div className="flex justify-between"><dt className="text-muted-foreground">False positive rate</dt><dd className="font-medium tabular">{pct(m.legitimateActions.falsePositiveRate)}</dd></div>
               <div className="flex justify-between"><dt className="text-muted-foreground">Approval replay prevention</dt><dd className="font-medium tabular">{m.approvalReplayPrevention.prevented}/{m.approvalReplayPrevention.total}</dd></div>
               <div className="flex justify-between"><dt className="text-muted-foreground">Scenarios</dt><dd><Pill>{m.scenarios}</Pill></dd></div>

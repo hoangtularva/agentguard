@@ -1,5 +1,5 @@
 /**
- * /v1 use cases for integrated apps (decision-only mode: AgentGuard decides, the host app
+ * /v1 use cases for integrated apps (decision-only mode: Callwrit decides, the host app
  * executes). Controllers in src/app/v1 only authenticate, parse and map results to HTTP.
  */
 import { and, desc, eq, isNull, max } from "drizzle-orm";
@@ -93,13 +93,13 @@ function boundTo(principal: ApiPrincipal, agentId: string, what: string, code: s
   if (principal.agentId && principal.agentId !== agentId) throw new ApiError(404, code, `${what} not found.`);
 }
 
-/** External end users are identified by the app; AgentGuard keeps a pseudonymous row per (app, user). */
+/** External end users are identified by the app; Callwrit keeps a pseudonymous row per (app, user). */
 async function externalUser(db: DB, appId: string, userRef: string): Promise<string> {
   const h = sha256(`${appId}\u0000${userRef}`).slice(0, 24);
   const id = `ext_${h}`;
   await db
     .insert(s.users)
-    .values({ id, name: userRef.slice(0, 80), email: `${h}@${appId}.apps.agentguard.invalid`, role: "member" })
+    .values({ id, name: userRef.slice(0, 80), email: `${h}@${appId}.apps.callwrit.invalid`, role: "member" })
     .onConflictDoNothing();
   return id;
 }

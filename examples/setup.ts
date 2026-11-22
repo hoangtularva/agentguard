@@ -1,5 +1,5 @@
 /**
- * Register the example app (tools, agents, keys) directly in the AgentGuard database.
+ * Register the example app (tools, agents, keys) directly in the Callwrit database.
  *   npm run examples:setup        (stop `npm run dev` first when using the embedded PGlite)
  * Prints the environment variables the examples read.
  */
@@ -34,7 +34,7 @@ export const EXAMPLE_TOOLS = {
 
 export async function setupExamples(db: DB, appId = "examples") {
   const [existing] = await db.select().from(s.apps).where(eq(s.apps.id, appId));
-  const app: App = existing ?? (await createApp(db, { id: appId, name: "AgentGuard examples", createdBy: "examples-setup" }));
+  const app: App = existing ?? (await createApp(db, { id: appId, name: "Callwrit examples", createdBy: "examples-setup" }));
   const principal = { keyId: "examples-setup", app, agentId: null, scopes: ["admin" as const] };
   for (const spec of Object.values(EXAMPLE_TOOLS)) await v1.putTool(db, principal, spec.name, spec);
   await v1.putAgent(db, principal, "researcher", { name: "Researcher", allowedTools: ["read_inbox"], active: true });
@@ -42,14 +42,14 @@ export async function setupExamples(db: DB, appId = "examples") {
   await v1.putAgent(db, principal, "mcp-desktop", { name: "MCP gateway", allowedTools: ["read_inbox", "send_email"], active: true });
   const key = (scopes: ("check" | "verify" | "admin")[], name: string) =>
     createApiKey(db, { appId, name, scopes, createdBy: "examples-setup" }).then((k) => k.key);
-  return { AGENTGUARD_API_KEY: await key(["check"], "examples-runtime"), AGENTGUARD_VERIFY_KEY: await key(["verify"], "examples-tools") };
+  return { CALLWRIT_API_KEY: await key(["check"], "examples-runtime"), CALLWRIT_VERIFY_KEY: await key(["verify"], "examples-tools") };
 }
 
 if (process.argv[1]?.endsWith("setup.ts")) {
   createDatabase()
     .then((db) => setupExamples(db))
     .then((env) => {
-      console.log("# export these, then run an example (AGENTGUARD_URL defaults to http://localhost:3000)");
+      console.log("# export these, then run an example (CALLWRIT_URL defaults to http://localhost:3000)");
       for (const [k, v] of Object.entries(env)) console.log(`${k}=${v}`);
       process.exit(0);
     })

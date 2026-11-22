@@ -10,7 +10,7 @@ import path from "node:path";
 
 const PG = process.argv.includes("--pg");
 const N = Number(process.env.N ?? 300);
-process.env.AGENTGUARD_V1_RATE = "100000"; // measure latency, not the rate limiter
+process.env.CALLWRIT_V1_RATE = "100000"; // measure latency, not the rate limiter
 
 const pct = (xs: number[], p: number) => {
   const s = [...xs].sort((a, b) => a - b);
@@ -24,7 +24,7 @@ async function main() {
     const { default: EmbeddedPostgres } = await import("embedded-postgres");
     const pg = new EmbeddedPostgres({
       databaseDir: path.resolve(`.data/pg-bench-${Date.now()}`),
-      user: "agentguard",
+      user: "callwrit",
       password: "bench-only",
       port: 54331,
       persistent: false,
@@ -32,8 +32,8 @@ async function main() {
     });
     await pg.initialise();
     await pg.start();
-    await pg.createDatabase("agentguard_bench");
-    process.env.DATABASE_URL = "postgres://agentguard:bench-only@127.0.0.1:54331/agentguard_bench";
+    await pg.createDatabase("callwrit_bench");
+    process.env.DATABASE_URL = "postgres://callwrit:bench-only@127.0.0.1:54331/callwrit_bench";
     stopPg = () => pg.stop();
   } else process.env.PGLITE_DIR = "memory";
 
@@ -41,7 +41,7 @@ async function main() {
   const { setupExamples } = await import("../examples/setup");
   const { startV1Server } = await import("../tests/v1-server");
   const db = await getDb();
-  const { AGENTGUARD_API_KEY: key } = await setupExamples(db, "bench");
+  const { CALLWRIT_API_KEY: key } = await setupExamples(db, "bench");
   const server = await startV1Server();
   const post = async (p: string, body: unknown) => {
     const r = await fetch(server.url + p, { method: "POST", headers: { authorization: `Bearer ${key}`, "content-type": "application/json" }, body: JSON.stringify(body) });

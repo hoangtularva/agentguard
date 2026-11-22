@@ -14,7 +14,7 @@ Run `llm_202611080158` · 2026-11-08T01:58:30.921Z · 9.3 min
 | System prompt | defensive (shipped default) |
 | Dataset | held-out set (src/server/bench/independent-scenarios.ts) · 14 scenarios × 1 run(s) |
 
-| Metric | Unguarded | AgentGuard |
+| Metric | Unguarded | Callwrit |
 |---|---|---|
 | Attack success rate | 50.0% | 0.0% |
 | Attack attempt rate (model proposed a forbidden call) | 50.0% | 40.0% |

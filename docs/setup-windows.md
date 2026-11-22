@@ -1,6 +1,6 @@
 # Setup guide — Windows (also works on macOS/Linux)
 
-Three ways to run AgentGuard, from least to most setup:
+Three ways to run Callwrit, from least to most setup:
 
 | Mode | Needs | Database | Agent |
 |---|---|---|---|
@@ -13,7 +13,7 @@ Three ways to run AgentGuard, from least to most setup:
 ## A. Quick demo (no admin rights needed)
 
 ```powershell
-cd agentguard
+cd callwrit
 npm install
 copy .env.example .env
 npm run dev
@@ -42,7 +42,7 @@ Tested on this repo's build machine: Windows 10 Pro, i5-7200U (2 cores), 12 GB R
    | 8 GB, CPU only | `qwen2.5:1.5b` | ~1 GB |
    | 12–16 GB, CPU only | `qwen2.5:3b` (default) | ~1.9 GB |
    | 16 GB+ or a GPU | `qwen2.5:7b`, `llama3.1:8b` | ~4.7 GB |
-4. Optional `.env` settings: `OLLAMA_HOST=http://127.0.0.1:11434`, `AGENTGUARD_OLLAMA_MODEL=qwen2.5:3b`.
+4. Optional `.env` settings: `OLLAMA_HOST=http://127.0.0.1:11434`, `CALLWRIT_OLLAMA_MODEL=qwen2.5:3b`.
 5. In the Playground, choose **Ollama (local)** and press **Check** if it shows "not running". On CPU, expect 10–30 s per model turn.
 
 If Ollama is down, the Playground says so and Simulation mode keeps working.
@@ -57,7 +57,7 @@ Docker Desktop on Windows uses the WSL 2 backend. Official docs: https://docs.do
    ```powershell
    docker version
    docker compose version
-   cd agentguard
+   cd callwrit
    copy .env.example .env      # set AUTH_SECRET to a random 32+ char string
    docker compose config       # validates the file
    docker compose up --build -d

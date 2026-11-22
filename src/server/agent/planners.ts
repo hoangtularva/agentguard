@@ -27,6 +27,6 @@ export async function plannerAvailability() {
       models: ollama.models.map((m) => m.name),
       error: ollama.error,
     },
-    anthropic: { available: anthropicConfigured(), model: process.env.AGENTGUARD_LLM_MODEL ?? "claude-opus-5-5" },
+    anthropic: { available: anthropicConfigured(), model: process.env.CALLWRIT_LLM_MODEL ?? "claude-opus-5-5" },
   };
 }

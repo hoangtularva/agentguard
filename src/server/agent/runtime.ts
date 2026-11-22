@@ -34,7 +34,7 @@ function blockedText(r: EnforcementResult) {
     .map((x) => `${x.code}: ${x.message}`)
     .join(" | ");
   const hint = r.decision.reasons.some((x) => x.code === "INVALID_ARGUMENTS") ? " Correct the arguments as described and call the tool again." : "";
-  return `BLOCKED by AgentGuard (policy v${r.decision.policyVersion}). ${reasons}${hint}`;
+  return `BLOCKED by Callwrit (policy v${r.decision.policyVersion}). ${reasons}${hint}`;
 }
 
 /**

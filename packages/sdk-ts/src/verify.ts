@@ -1,8 +1,8 @@
 /**
- * Tool-side verification: the tool itself refuses calls that AgentGuard did not allow.
+ * Tool-side verification: the tool itself refuses calls that Callwrit did not allow.
  *
  * Put this in the service that performs the side effect (mail sender, payment API, file store).
- * Even if an agent runtime is compromised or simply forgets to call AgentGuard, the tool only
+ * Even if an agent runtime is compromised or simply forgets to call Callwrit, the tool only
  * acts on a valid, unused decision token that covers exactly this tool + arguments.
  */
 import { type DecisionTokenPayload, verifyDecisionToken } from "../../core/src/decision-token";
@@ -19,7 +19,7 @@ export interface VerifierOptions {
   /** Offline mode for Ed25519 (agt2) tokens: the app's public key from GET /v1/keys/:appId. No secret needed. */
   publicKey?: string;
   appId?: string;
-  /** Online mode: AgentGuard base URL + an API key with scope `verify` (server-side single use). */
+  /** Online mode: Callwrit base URL + an API key with scope `verify` (server-side single use). */
   server?: { baseUrl: string; apiKey: string; timeoutMs?: number; fetch?: typeof fetch };
 }
 
@@ -31,7 +31,7 @@ export class DecisionVerifier {
   }
 
   async verify(token: string | null | undefined, tool: string, args: Record<string, unknown>): Promise<VerifyResult> {
-    if (!token) return { valid: false, code: "MISSING", message: "No AgentGuard decision token." };
+    if (!token) return { valid: false, code: "MISSING", message: "No Callwrit decision token." };
     if (this.o.server) return this.online(token, tool, args);
     const now = Math.floor(Date.now() / 1000);
     const r = verifyDecisionToken(token, { key: this.o.key, publicKey: this.o.publicKey, tool, args, appId: this.o.appId, nowSeconds: now });
@@ -62,7 +62,7 @@ export class DecisionVerifier {
 
   /**
    * Wrap a fetch-style HTTP handler (Next.js route, Hono, Bun, Deno, Workers). The request must carry
-   * `X-AgentGuard-Token` and a JSON body equal to the tool arguments; otherwise 403.
+   * `X-Callwrit-Token` and a JSON body equal to the tool arguments; otherwise 403.
    */
   protect(tool: string, handler: (req: Request, args: Record<string, unknown>) => Response | Promise<Response>) {
     return async (req: Request): Promise<Response> => {
@@ -72,8 +72,8 @@ export class DecisionVerifier {
       } catch {
         return Response.json({ error: "invalid_json" }, { status: 400 });
       }
-      const v = await this.verify(req.headers.get("x-agentguard-token"), tool, args);
-      if (!v.valid) return Response.json({ error: "agentguard_denied", code: v.code, message: v.message }, { status: 403 });
+      const v = await this.verify(req.headers.get("x-callwrit-token"), tool, args);
+      if (!v.valid) return Response.json({ error: "callwrit_denied", code: v.code, message: v.message }, { status: 403 });
       return handler(req, args);
     };
   }

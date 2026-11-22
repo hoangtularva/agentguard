@@ -35,7 +35,7 @@ export function SignIn({ users, demoAuth }: { users: User[]; demoAuth: boolean }
       <div className="w-full max-w-md rounded-xl border bg-card p-6">
         <div className="mb-5 flex items-center gap-2">
           <span className="grid size-8 place-items-center rounded-md bg-brand text-white"><ShieldHalf className="size-4" /></span>
-          <h1 className="text-lg font-semibold tracking-tight">AgentGuard</h1>
+          <h1 className="text-lg font-semibold tracking-tight">Callwrit</h1>
         </div>
         {demoAuth ? (
           <>
@@ -64,7 +64,7 @@ export function SignIn({ users, demoAuth }: { users: User[]; demoAuth: boolean }
           </>
         ) : (
           <p className="text-sm text-muted-foreground" role="status">
-            Sign-in is not configured. Demo identities are disabled on this server (<code>AGENTGUARD_DEMO_AUTH</code> is off), and real authentication (OIDC) is not part of this demo.
+            Sign-in is not configured. Demo identities are disabled on this server (<code>CALLWRIT_DEMO_AUTH</code> is off), and real authentication (OIDC) is not part of this demo.
           </p>
         )}
       </div>

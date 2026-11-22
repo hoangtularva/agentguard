@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 
 /**
  * DEMO sign-in / identity switch. Not an authentication mechanism.
- * Disabled unless AGENTGUARD_DEMO_AUTH is on (default on outside production). See src/server/identity.ts.
+ * Disabled unless CALLWRIT_DEMO_AUTH is on (default on outside production). See src/server/identity.ts.
  */
 const Body = z.object({ userId: z.string().min(1).max(40) });
 

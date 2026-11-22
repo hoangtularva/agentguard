@@ -3,8 +3,8 @@
  * a webhook URL for the app (`npm run admin -- webhook <app> <url>`).
  *
  * POST <url> with JSON { type, app, approvalId, callId, tool, status, expiresAt, sentAt } and
- *   X-AgentGuard-Timestamp: <unix seconds>
- *   X-AgentGuard-Signature: sha256=<hex HMAC-SHA256(secret, timestamp + "." + body)>
+ *   X-Callwrit-Timestamp: <unix seconds>
+ *   X-Callwrit-Signature: sha256=<hex HMAC-SHA256(secret, timestamp + "." + body)>
  * The secret is derived from AUTH_SECRET (`npm run admin -- webhook-secret <app>`). Delivery is
  * best effort: one attempt, 3 s timeout, failures are logged and never affect decisions.
  * Payloads carry ids and the tool name only, never arguments.
@@ -25,7 +25,7 @@ export type WebhookEvent = {
   expiresAt: string;
 };
 
-export const webhookSecretFor = (appId: string) => createHmac("sha256", secret()).update(`agentguard/webhook/${appId}`).digest("hex");
+export const webhookSecretFor = (appId: string) => createHmac("sha256", secret()).update(`callwrit/webhook/${appId}`).digest("hex");
 
 export function signWebhook(appId: string, timestamp: string, body: string) {
   return `sha256=${createHmac("sha256", webhookSecretFor(appId)).update(`${timestamp}.${body}`).digest("hex")}`;
@@ -50,7 +50,7 @@ export async function notify(db: DB, event: WebhookEvent, fetchImpl: typeof fetc
   try {
     const r = await fetchImpl(url, {
       method: "POST",
-      headers: { "content-type": "application/json", "x-agentguard-timestamp": ts, "x-agentguard-signature": signWebhook(event.app, ts, body) },
+      headers: { "content-type": "application/json", "x-callwrit-timestamp": ts, "x-callwrit-signature": signWebhook(event.app, ts, body) },
       body,
       signal: AbortSignal.timeout(3000),
       redirect: "manual",

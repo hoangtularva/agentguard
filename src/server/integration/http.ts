@@ -6,8 +6,8 @@ import { json, parseBody } from "@/server/http";
 import { type ApiPrincipal, type ApiScope, authenticateApiKey } from "./apps";
 import { ApiError } from "./service";
 
-/** Per-key token bucket (in-process): sustained rate req/s (AGENTGUARD_V1_RATE, default 50), bursts up to 2× the rate. */
-const rate = () => Math.max(1, Number(process.env.AGENTGUARD_V1_RATE) || 50);
+/** Per-key token bucket (in-process): sustained rate req/s (CALLWRIT_V1_RATE, default 50), bursts up to 2× the rate. */
+const rate = () => Math.max(1, Number(process.env.CALLWRIT_V1_RATE) || 50);
 const g = globalThis as unknown as { __agBuckets?: Map<string, { tokens: number; at: number }> };
 
 function take(keyId: string): boolean {

@@ -1,5 +1,5 @@
 {
-  "agentguard": { "baseUrl": "env:AGENTGUARD_URL", "apiKey": "env:AGENTGUARD_API_KEY" },
+  "callwrit": { "baseUrl": "env:CALLWRIT_URL", "apiKey": "env:CALLWRIT_API_KEY" },
   "agentId": "mcp-desktop",
   "userRef": "alice",
   "task": "Read my inbox and email a short Q3 summary to cfo@corp.test",

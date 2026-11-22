@@ -3,7 +3,7 @@ import { type ChatMessage, type ChatRequest, type ChatResponse, type LLMProvider
 
 /**
  * Anthropic provider (optional, needs ANTHROPIC_API_KEY or an `ant auth login` profile).
- * Model: AGENTGUARD_LLM_MODEL (default claude-opus-5-5), effort AGENTGUARD_LLM_EFFORT (default low).
+ * Model: CALLWRIT_LLM_MODEL (default claude-opus-5-5), effort CALLWRIT_LLM_EFFORT (default low).
  * Assistant turns are replayed from their raw content blocks so thinking blocks are passed back unchanged.
  */
 export class AnthropicProvider implements LLMProvider {
@@ -12,7 +12,7 @@ export class AnthropicProvider implements LLMProvider {
   private client = new Anthropic();
 
   constructor(config?: Partial<ModelConfig>) {
-    this.config = { model: config?.model ?? process.env.AGENTGUARD_LLM_MODEL ?? "claude-opus-5-5", maxOutputTokens: config?.maxOutputTokens ?? 16000 };
+    this.config = { model: config?.model ?? process.env.CALLWRIT_LLM_MODEL ?? "claude-opus-5-5", maxOutputTokens: config?.maxOutputTokens ?? 16000 };
   }
 
   private toMessages(messages: ChatMessage[]): Anthropic.MessageParam[] {
@@ -44,7 +44,7 @@ export class AnthropicProvider implements LLMProvider {
 
   async chat(req: ChatRequest): Promise<ChatResponse> {
     const t0 = performance.now();
-    const effort = (process.env.AGENTGUARD_LLM_EFFORT ?? "low") as "low" | "medium" | "high";
+    const effort = (process.env.CALLWRIT_LLM_EFFORT ?? "low") as "low" | "medium" | "high";
     let response: Anthropic.Message;
     try {
       response = await this.client.messages.create(

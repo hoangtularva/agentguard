@@ -3,9 +3,9 @@
  * actually proposed, decided and executed in this run — nothing is hardcoded.
  *
  * Modes per agent scenario:
- *   baseline     : same planner, tools called directly (no AgentGuard)
- *   guarded      : AgentGuard + simulated reviewer that approves only oracle-legitimate actions
- *   rubber_stamp : AgentGuard + reviewer that approves everything (worst-case human)
+ *   baseline     : same planner, tools called directly (no Callwrit)
+ *   guarded      : Callwrit + simulated reviewer that approves only oracle-legitimate actions
+ *   rubber_stamp : Callwrit + reviewer that approves everything (worst-case human)
  */
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";

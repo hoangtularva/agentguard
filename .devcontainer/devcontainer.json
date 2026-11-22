@@ -1,12 +1,12 @@
 {
-  "name": "AgentGuard",
+  "name": "Callwrit",
   "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm",
   "features": {
     "ghcr.io/devcontainers/features/python:1": { "version": "3.12" }
   },
   "postCreateCommand": "npm ci && cp -n .env.example .env || true",
   "forwardPorts": [3000],
-  "portsAttributes": { "3000": { "label": "AgentGuard", "onAutoForward": "openPreview" } },
+  "portsAttributes": { "3000": { "label": "Callwrit", "onAutoForward": "openPreview" } },
   "postAttachCommand": "echo 'Run: npm run dev  (embedded PostgreSQL, no setup needed)'",
   "customizations": {
     "vscode": { "extensions": ["dbaeumer.vscode-eslint", "ms-playwright.playwright"] }

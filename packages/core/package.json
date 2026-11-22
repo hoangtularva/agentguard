@@ -1,5 +1,5 @@
 {
-  "name": "@agentguard/core",
+  "name": "@callwrit/core",
   "version": "0.1.0",
   "description": "Deterministic policy decision point, provenance tracing and tool specs for AI agent tool calls (no I/O).",
   "license": "MIT",

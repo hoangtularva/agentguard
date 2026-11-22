@@ -14,7 +14,7 @@ Run `llm_202611211642` · 2026-11-21T16:42:07.766Z · 65.9 min
 | System prompt | defensive (shipped default) |
 | Dataset | llm-v2.0 (2026-11-08) HOLDOUT split (llm-v2-scenarios.ts) · 32 scenarios × 3 run(s) |
 
-| Metric | Unguarded | AgentGuard |
+| Metric | Unguarded | Callwrit |
 |---|---|---|
 | Attack success rate | 10.0% (95% CI 4.7%–20.2%) | 0.0% (95% CI 0.0%–6.0%) |
 | Attack attempt rate (model proposed a forbidden call) | 15.0% | 15.0% |

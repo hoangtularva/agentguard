@@ -70,9 +70,9 @@ Then the executor runs in a transaction that inserts `executions` with unique `t
 
 `users`, `agents`, `corpus_items`, `policy_versions` (immutable, unique `(policy_id, version)`), `active_policy`, `agent_sessions` (prompt + mandate), `provenance_sources` (hash only), `tool_calls`, `approvals` (unique per tool call), `executions` (unique tool call, unique idempotency key), `sandbox_effects` (mock side effects), `audit_events`, `benchmark_runs`. Migration: `drizzle/0000_init.sql`.
 
-**Identity & data scoping (Phase 3):** `src/server/identity.ts` signs the demo identity cookie (HMAC-SHA256, constant-time compare). There is no implicit user: APIs return 401 and pages show a demo sign-in. Demo sign-in requires `AGENTGUARD_DEMO_AUTH` (default on outside production). All read models in `src/server/queries.ts` take a `Viewer`: members see only their own sessions, approvals and events; approvers and admins see all.
+**Identity & data scoping (Phase 3):** `src/server/identity.ts` signs the demo identity cookie (HMAC-SHA256, constant-time compare). There is no implicit user: APIs return 401 and pages show a demo sign-in. Demo sign-in requires `CALLWRIT_DEMO_AUTH` (default on outside production). All read models in `src/server/queries.ts` take a `Viewer`: members see only their own sessions, approvals and events; approvers and admins see all.
 
-**LLM modes:** `simulated` (default, deterministic), `ollama` (`OLLAMA_HOST`, `AGENTGUARD_OLLAMA_MODEL`), `anthropic` (`ANTHROPIC_API_KEY`). `GET /api/llm/status` probes availability (2 s timeout). LLM runs and benchmarks are single-flight (429 when busy).
+**LLM modes:** `simulated` (default, deterministic), `ollama` (`OLLAMA_HOST`, `CALLWRIT_OLLAMA_MODEL`), `anthropic` (`ANTHROPIC_API_KEY`). `GET /api/llm/status` probes availability (2 s timeout). LLM runs and benchmarks are single-flight (429 when busy).
 
 **Database modes:** `DATABASE_URL` → node-postgres (Docker Compose). Otherwise → **PGlite** (PostgreSQL compiled to WASM), persisted in `.data/pglite` or in-memory for tests. Same migrations, same SQL semantics. See [DECISIONS.md](DECISIONS.md) D-02.
 
@@ -82,7 +82,7 @@ Then the executor runs in a transaction that inserts `executions` with unique `t
 |---|---|---|
 | AC1 | Every tool call passes the PEP; executors are unreachable elsewhere | ESLint `no-restricted-imports`, `tests/unit/boundaries.test.ts` |
 | AC2 | Default deny; deterministic decisions with policy version + reasons | `tests/unit/policy-engine.test.ts`, benchmark `deterministic: true` |
-| AC3 | Retrieved content cannot authorize destinations; injected actions do not execute | Scenarios M01, A01–A05, A11–A14; ASR with AgentGuard = 0 |
+| AC3 | Retrieved content cannot authorize destinations; injected actions do not execute | Scenarios M01, A01–A05, A11–A14; ASR with Callwrit = 0 |
 | AC4 | Approval valid once, for exact args, user, agent, policy version, before expiry | `tests/integration/enforcement.test.ts`, scenarios P01–P10, e2e replay/tamper |
 | AC5 | Audit stores decisions without secrets or content verbatim | "does not store email bodies verbatim" test |
 | AC6 | ≥ 30 scenarios with expected decisions, automated, baseline comparison | 37 scenarios, `tests/integration/benchmark.test.ts` |
@@ -97,7 +97,7 @@ Then the executor runs in a transaction that inserts `executions` with unique `t
 ```mermaid
 flowchart LR
   subgraph Host["Your app (any codebase)"]
-    A1[Agent A] -->|guard()| SDK[AgentGuard SDK<br/>TS / Python]
+    A1[Agent A] -->|guard()| SDK[Callwrit SDK<br/>TS / Python]
     A2[Agent B] -->|guard()| SDK
     MC[MCP client] -->|stdio| GW[MCP gateway]
     T[Tool service] -->|verify token| VF[DecisionVerifier]

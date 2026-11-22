@@ -47,26 +47,26 @@ export async function createDatabase(opts: { url?: string; pgliteDir?: string; s
   return db;
 }
 
-const g = globalThis as unknown as { __agentguardDb?: Promise<DB> };
+const g = globalThis as unknown as { __callwritDb?: Promise<DB> };
 
 /** Process-wide database handle (survives Next.js dev hot reloads). */
 export function getDb(): Promise<DB> {
-  if (!g.__agentguardDb) {
-    g.__agentguardDb = createDatabase()
+  if (!g.__callwritDb) {
+    g.__callwritDb = createDatabase()
       .then(async (db) => {
         // Tamper-evident audit: seal new events every few seconds (not inside test runners).
-        if (!process.env.VITEST && process.env.AGENTGUARD_AUDIT_SEALER !== "0") {
+        if (!process.env.VITEST && process.env.CALLWRIT_AUDIT_SEALER !== "0") {
           const { startAuditSealer } = await import("@/server/enforcement/audit-chain");
           startAuditSealer(db);
         }
         return db;
       })
       .catch((e) => {
-      g.__agentguardDb = undefined;
+      g.__callwritDb = undefined;
       throw e;
     });
   }
-  return g.__agentguardDb;
+  return g.__callwritDb;
 }
 
 export { schema };

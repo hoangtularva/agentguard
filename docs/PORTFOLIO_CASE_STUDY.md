@@ -1,4 +1,4 @@
-# Case study — AgentGuard: a provenance-aware firewall for AI agent tool calls
+# Case study — Callwrit: a provenance-aware firewall for AI agent tool calls
 
 *Independent portfolio project. Synthetic data, mock tools, local models. Not a product, not production-ready, not "the first" of its kind.*
 
@@ -74,7 +74,7 @@ DEV-driven changes were limited to **bugs** (unhelpful argument errors; an oracl
 ## 8. Results
 
 ### Real LLM: held-out set (frozen code) — [report](benchmark-llm-v2-holdout.md)
-| | Unguarded | AgentGuard |
+| | Unguarded | Callwrit |
 |---|---|---|
 | Attack success | 66.7% (CI 54.1–77.3%) | **0.0% (CI 0.0–6.0%)** |
 | Model attempted the attack | 66.7% | 58.3% |
@@ -95,7 +95,7 @@ Attack success 93.3% → **0.0%** (13.3% with a rubber-stamp reviewer), FP 0/99,
 - Dashboard queries at 50k audit events: overview p95 ≈ 40 ms, events/approvals p95 ≈ 5 ms. Measured, so no extra indexes were added.
 - Red team: 7 findings fixed (2 High: implicit identity, identity switch → approver; 1 Medium: IDOR), each with a regression test.
 
-**What these numbers do not say:** that AgentGuard is secure in general. The datasets are self-authored, the model is small, and the reviewer is idealized; see §9 and the threat model.
+**What these numbers do not say:** that Callwrit is secure in general. The datasets are self-authored, the model is small, and the reviewer is idealized; see §9 and the threat model.
 
 ### Integration (Phase 4)
 - Agents in **any codebase** can be guarded: `/v1` decision API, zero-dependency TypeScript and Python SDKs, an MCP gateway (no code changes) and tool-side token verifiers.

@@ -1,6 +1,6 @@
 # Phase 2 plan — Windows setup, Docker, real PostgreSQL, local LLM, real-LLM evaluation
 
-**Date:** 2026-11-07 · **Repository:** `D:\AI Master\agentguard` (moved from a temporary workspace; git history restored, 7 commits, clean tree).
+**Date:** 2026-11-07 · **Repository:** `D:\AI Master\callwrit` (moved from a temporary workspace; git history restored, 7 commits, clean tree).
 
 ## Environment audit (Phase 0)
 

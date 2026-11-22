@@ -194,7 +194,7 @@ export function AppCard({ app }: { app: AppView }) {
 
           {created && (
             <div className="mt-2 rounded-lg border border-review/40 bg-review/10 p-2 text-xs" role="status">
-              <p className="mb-1 font-medium">Copy this key now. It is shown once; AgentGuard stores only its hash.</p>
+              <p className="mb-1 font-medium">Copy this key now. It is shown once; Callwrit stores only its hash.</p>
               <div className="flex items-center gap-2">
                 <code className="min-w-0 flex-1 break-all font-mono">{created}</code>
                 <Button

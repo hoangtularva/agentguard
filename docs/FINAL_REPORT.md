@@ -1,4 +1,4 @@
-# Final report — AgentGuard MVP
+# Final report — Callwrit MVP
 
 **Date:** 2026-11-07 · **Status: 9 of 10 completion criteria met and verified. Not marked MVP COMPLETE, because criterion 9 (Docker Compose runs) could not be verified on this machine (Docker is not installed).**
 
@@ -73,7 +73,7 @@ See [README.md](../README.md): `npm install`, `cp .env.example .env`, `npm run d
 | 1 | Docker Compose runs in a verified environment | ✅ | Docker Desktop 4.98.0 / Engine 29.9.2 / Compose v5.6.1 (WSL 2). db + app healthy, 7 routes 200, migrations on PG 16.15, data persists across restart, **Playwright 13/13 against the stack** |
 | 2 | Real PostgreSQL passes integration/concurrency tests | ✅ | `npm run test:pg` 11/11 on PostgreSQL 16 (10-connection pool) |
 | 3 | Ollama runs a real LLM | ✅ | Ollama 0.40.15 (SHA-256 verified zip), `qwen2.5:3b` digest `357c53fb659c…` |
-| 4 | AgentGuard handles tool calls from a real LLM | ✅ | `bench:llm` on 14 held-out scenarios × 2 runs; Playground run with Ollama verified in the browser |
+| 4 | Callwrit handles tool calls from a real LLM | ✅ | `bench:llm` on 14 held-out scenarios × 2 runs; Playground run with Ollama verified in the browser |
 | 5 | Tool calls must pass through the PEP | ✅ | Lint rule + architecture test; malicious fake-provider test (all calls BLOCKED, 0 side effects) |
 | 6 | Human approval + replay protection | ✅ | 12 integration + 10 approval-attack scenarios + 11 real-PG tests + e2e |
 | 7 | Reproducible real-LLM benchmark | ✅ with caveat | Model digest, sampling, hardware and dataset recorded; 2 runs agree on 12/14 scenarios (CPU temp-0 is near- but not fully deterministic); raw JSON of both runs in `docs/results/` |
@@ -83,7 +83,7 @@ See [README.md](../README.md): `npm install`, `cp .env.example .env`, `npm run d
 
 ## Real-LLM results (held-out set, qwen2.5:3b, CPU)
 
-| | Unguarded | AgentGuard |
+| | Unguarded | Callwrit |
 |---|---|---|
 | Attack success (run 1 / run 2) | 50% / 50% | **0% / 0%** |
 | Attack attempted by the model | 50% / 50% | 50% / 40% |
@@ -95,7 +95,7 @@ See [README.md](../README.md): `npm install`, `cp .env.example .env`, `npm run d
 ## Findings in Phase 2
 
 1. **Non-atomic approval execution (fixed, High).** Claim and execution were separate transactions, so a failure in between burnt the approval without running the action. A real-PostgreSQL regression test fails on the old code and passes on the fix.
-2. **Hallucinated recipients (real-LLM).** The model invented email addresses (H04, H10); unguarded, it *sent internal data to them*. AgentGuard default-denied them (model-generated provenance).
+2. **Hallucinated recipients (real-LLM).** The model invented email addresses (H04, H10); unguarded, it *sent internal data to them*. Callwrit default-denied them (model-generated provenance).
 3. **Benchmark oracle bug (fixed, disclosed).** H04's oracle counted the hallucinated send as legitimate. Fixed with `destinationNot` and a new `unintended_action_executed` outcome; both runs' raw data are kept.
 4. **Argument-fidelity false positives (open).** Small models drop id prefixes; strict schemas reject them. Not "fixed" by guessing ids (that would be unsafe and tuned to the held-out set). Next step: clearer error messages so the model can self-correct, evaluated on a *new* test set.
 5. **Corrupted demo DB after the folder copy (fixed).** The copied PGlite data failed to open. Moved aside to `.data/pglite-broken-copy` (not deleted); the build no longer touches any DB (`connection()` in the root layout).
@@ -113,7 +113,7 @@ c6f908d security: Sec-Fetch-Site CSRF check, single-flight guard for LLM/benchma
 Plus the final commit containing this report. Nothing was pushed (no remote).
 
 ## How to use it
-1. **Docker stack:** `docker compose up -d` in `agentguard` (open a *new* terminal so Docker is on PATH) → http://localhost:3000. `docker compose down` keeps the data volume; `down -v` deletes it.
+1. **Docker stack:** `docker compose up -d` in `callwrit` (open a *new* terminal so Docker is on PATH) → http://localhost:3000. `docker compose down` keeps the data volume; `down -v` deletes it.
 2. **To use Ollama again later:** `D:\AI Master\_tools\ollama\ollama.exe serve` (set `OLLAMA_MODELS=D:\AI Master\_tools\ollama-models` first).
 3. Optional: an Anthropic key for `npm run bench:llm -- --provider anthropic`.
 
@@ -143,7 +143,7 @@ Plus the final commit containing this report. Nothing was pushed (no remote).
 Overview p95 ≈ 40 ms (member and approver); events p95 ≈ 5 ms; approvals p95 ≈ 3 ms. The planned indexes (O5) are **not needed** at this scale.
 
 ## Phase 3 findings & fixes (summary)
-- **High:** implicit default identity (F1); demo identity switch → approver (F3, gated by `AGENTGUARD_DEMO_AUTH`).
+- **High:** implicit default identity (F1); demo identity switch → approver (F3, gated by `CALLWRIT_DEMO_AUTH`).
 - **Medium:** IDOR on read models (F4, viewer-scoped queries).
 - **Low:** unbounded body (F5), no CSP (F6), members could run the benchmark (F7), hydration mismatch (F10).
 - **Product/measurement bugs found on DEV:** unhelpful argument errors for models; an oracle that counted hallucinated recipients as legitimate.
@@ -157,7 +157,7 @@ Phase 4 — integration with any codebase: [PHASE4_INTEGRATION_PLAN.md](PHASE4_I
 
 # Phase 4 report — integration with any codebase (2026-11-21)
 
-**Goal:** make AgentGuard usable by agents that live in other codebases, safely for the host app, with clean architecture.
+**Goal:** make Callwrit usable by agents that live in other codebases, safely for the host app, with clean architecture.
 
 ## What was built
 - **Ports & Adapters core**: the PEP split into use cases (`check-tool-call`, `execute-approved`, `session`, `execution`) behind ports; the demo and external apps share the same PDP, provenance, approvals and audit.

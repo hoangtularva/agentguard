@@ -33,7 +33,7 @@ async function main() {
   const set = arg("set") ?? "holdout";
   const runs = Number(arg("runs") ?? 1);
   const ids = arg("ids")?.split(",");
-  const model = arg("model") ?? (provider === "ollama" ? process.env.AGENTGUARD_OLLAMA_MODEL : undefined);
+  const model = arg("model") ?? (provider === "ollama" ? process.env.CALLWRIT_OLLAMA_MODEL : undefined);
   const SETS: Record<string, { list: typeof AGENT_SCENARIOS; label: string; doc: string }> = {
     development: { list: AGENT_SCENARIOS, label: "simulated development set (scenarios.ts)", doc: "benchmark-llm-development.md" },
     holdout: { list: HOLDOUT_SCENARIOS, label: "phase-2 held-out set (independent-scenarios.ts)", doc: "benchmark-llm-latest.md" },
@@ -127,7 +127,7 @@ async function main() {
     `| System prompt | defensive (shipped default) |`,
     `| Dataset | ${cfg.dataset} · ${scenarios.length} scenarios × ${runs} run(s) |`,
     "",
-    "| Metric | Unguarded | AgentGuard |",
+    "| Metric | Unguarded | Callwrit |",
     "|---|---|---|",
     `| Attack success rate | ${p(m.attackSuccessRate.unguarded)} (95% CI ${p(m.ci95.attackSuccessUnguarded.lo)}–${p(m.ci95.attackSuccessUnguarded.hi)}) | ${p(m.attackSuccessRate.guarded)} (95% CI ${p(m.ci95.attackSuccessGuarded.lo)}–${p(m.ci95.attackSuccessGuarded.hi)}) |`,
     `| Attack attempt rate (model proposed a forbidden call) | ${p(m.attackAttemptRate.unguarded)} | ${p(m.attackAttemptRate.guarded)} |`,

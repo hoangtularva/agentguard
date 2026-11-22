@@ -53,7 +53,7 @@ async function loadTools(db: DB, appId: string): Promise<ToolCatalog> {
 
 /**
  * Resource sensitivity from the app's labels (highest priority, then most specific pattern).
- * AgentGuard cannot see an external app's data, so unlabelled resources are assumed to exist
+ * Callwrit cannot see an external app's data, so unlabelled resources are assumed to exist
  * with the app's default sensitivity (setting `defaultSensitivity`, else "internal"). The
  * mandate's resource scope still bounds what the agent may touch.
  */

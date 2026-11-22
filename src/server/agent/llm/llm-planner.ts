@@ -6,7 +6,7 @@ import { type ChatMessage, type LLMProvider, ProviderError } from "./types";
  * Provider-agnostic LLM planner (manual tool-use loop, one proposal at a time).
  * The model only PROPOSES tool calls; every proposal is handed to the PEP by the runtime.
  * Tool output is wrapped as untrusted data. The system prompt asks the model not to
- * follow embedded instructions — defense in depth only; AgentGuard does not rely on it.
+ * follow embedded instructions — defense in depth only; Callwrit does not rely on it.
  */
 export const DEFENSIVE_SYSTEM_PROMPT = [
   "You are a workplace assistant that completes the user's request using the provided tools.",

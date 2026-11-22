@@ -8,7 +8,7 @@
  *   npm run admin -- token-alg <appId> hmac|ed25519   (decision-token signature; ed25519 = verify with a public key)
  *   npm run admin -- budget <appId> <n|off>         (max outbound actions per session)
  *   npm run admin -- webhook <appId> <url|off>     (approval notifications; off by default)
- *   npm run admin -- webhook-secret <appId>        (to verify X-AgentGuard-Signature)
+ *   npm run admin -- webhook-secret <appId>        (to verify X-Callwrit-Signature)
  *   npm run admin -- audit-verify          (seal pending audit events, then verify the hash chain)
  *   npm run admin -- list
  *

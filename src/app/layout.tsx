@@ -13,7 +13,7 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: { default: "AgentGuard", template: "%s · AgentGuard" },
+  title: { default: "Callwrit", template: "%s · Callwrit" },
   description: "Action intent & data provenance firewall for AI agent tool calls.",
 };
 

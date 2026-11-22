@@ -5,7 +5,7 @@ import { RiskLevelSchema } from "./types";
 
 /**
  * Data-driven tool description. Any application can register its own tools with
- * AgentGuard using this shape; the PEP needs nothing else to enforce policy.
+ * Callwrit using this shape; the PEP needs nothing else to enforce policy.
  *
  * Security-relevant metadata:
  *  - kind: "source" brings data in, "sink" sends data out (destinations are provenance-checked)

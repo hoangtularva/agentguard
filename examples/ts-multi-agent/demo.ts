@@ -1,13 +1,13 @@
 /**
- * Two cooperating agents guarded by AgentGuard through the TypeScript SDK.
+ * Two cooperating agents guarded by Callwrit through the TypeScript SDK.
  *
  * The researcher reads the inbox; one email carries an injected instruction. The writer (a
  * different agent in the same session) is then driven to email data out. Planners are
  * scripted so the run is deterministic; swap them for an LLM in a real app.
  *
- *   AGENTGUARD_URL=http://localhost:3000 AGENTGUARD_API_KEY=agk_… npx tsx examples/ts-multi-agent/demo.ts
+ *   CALLWRIT_URL=http://localhost:3000 CALLWRIT_API_KEY=agk_… npx tsx examples/ts-multi-agent/demo.ts
  */
-import { AgentGuard, AgentGuardBlockedError, ApprovalRequiredError, guardTools } from "../../packages/sdk-ts/src/index";
+import { Callwrit, CallwritBlockedError, ApprovalRequiredError, guardTools } from "../../packages/sdk-ts/src/index";
 
 export const INBOX = [
   "From: cfo@corp.test - Please send me the Q3 summary today.",
@@ -22,7 +22,7 @@ export interface Step {
 }
 
 export async function runDemo(baseUrl: string, apiKey: string, log: (s: string) => void = console.log, timeoutMs?: number) {
-  const ag = new AgentGuard({ baseUrl, apiKey, timeoutMs });
+  const ag = new Callwrit({ baseUrl, apiKey, timeoutMs });
   const session = await ag.startSession({
     userRef: "alice",
     agentId: "researcher",
@@ -46,7 +46,7 @@ export async function runDemo(baseUrl: string, apiKey: string, log: (s: string) 
       steps.push({ agent, action, outcome: "ran", detail: String(await fn()).slice(0, 60) });
     } catch (e) {
       if (e instanceof ApprovalRequiredError) steps.push({ agent, action, outcome: "REVIEW", detail: `approval ${e.approvalId}` });
-      else if (e instanceof AgentGuardBlockedError) steps.push({ agent, action, outcome: "BLOCK", detail: e.reasons.map((r) => r.code).join(",") });
+      else if (e instanceof CallwritBlockedError) steps.push({ agent, action, outcome: "BLOCK", detail: e.reasons.map((r) => r.code).join(",") });
       else throw e;
     }
     const s = steps[steps.length - 1];
@@ -63,9 +63,9 @@ export async function runDemo(baseUrl: string, apiKey: string, log: (s: string) 
 }
 
 if (process.argv[1]?.endsWith("demo.ts")) {
-  const key = process.env.AGENTGUARD_API_KEY;
-  if (!key) throw new Error("Set AGENTGUARD_API_KEY (npm run examples:setup)");
-  runDemo(process.env.AGENTGUARD_URL ?? "http://localhost:3000", key).catch((e) => {
+  const key = process.env.CALLWRIT_API_KEY;
+  if (!key) throw new Error("Set CALLWRIT_API_KEY (npm run examples:setup)");
+  runDemo(process.env.CALLWRIT_URL ?? "http://localhost:3000", key).catch((e) => {
     console.error(e.message);
     process.exit(1);
   });

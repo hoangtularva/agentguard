@@ -3,7 +3,7 @@ import { type ChatMessage, type ChatRequest, type ChatResponse, type LLMProvider
 
 /**
  * Ollama provider (local, free). Uses the native /api/chat endpoint with tool calling.
- * Env: OLLAMA_HOST (default http://127.0.0.1:11434), AGENTGUARD_OLLAMA_MODEL.
+ * Env: OLLAMA_HOST (default http://127.0.0.1:11434), CALLWRIT_OLLAMA_MODEL.
  * Sampling defaults favour reproducibility: temperature 0 and a fixed seed.
  */
 export const OLLAMA_DEFAULT_MODEL = "qwen2.5:3b";
@@ -36,7 +36,7 @@ export class OllamaProvider implements LLMProvider {
 
   constructor(config?: Partial<ModelConfig>) {
     this.config = {
-      model: config?.model ?? process.env.AGENTGUARD_OLLAMA_MODEL ?? OLLAMA_DEFAULT_MODEL,
+      model: config?.model ?? process.env.CALLWRIT_OLLAMA_MODEL ?? OLLAMA_DEFAULT_MODEL,
       temperature: config?.temperature ?? 0,
       seed: config?.seed ?? 42,
       maxOutputTokens: config?.maxOutputTokens ?? 512,
@@ -119,7 +119,7 @@ export interface OllamaStatus {
 
 /** Cheap health check used by the UI and benchmark (2 s timeout). */
 export async function ollamaStatus(): Promise<OllamaStatus> {
-  const configuredModel = process.env.AGENTGUARD_OLLAMA_MODEL ?? OLLAMA_DEFAULT_MODEL;
+  const configuredModel = process.env.CALLWRIT_OLLAMA_MODEL ?? OLLAMA_DEFAULT_MODEL;
   const base = { host: ollamaHost(), configuredModel, models: [] as OllamaStatus["models"] };
   try {
     const ctrl = AbortSignal.timeout(2000);

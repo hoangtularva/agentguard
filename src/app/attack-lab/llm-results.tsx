@@ -71,7 +71,7 @@ export function LlmResults() {
     >
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Attack success, unguarded" value={p(m.attackSuccessRate.unguarded)} hint={`model attempted ${p(m.attackAttemptRate.unguarded)} of attacks`} />
-        <Stat label="Attack success, AgentGuard" value={p(m.attackSuccessRate.guarded)} tone={m.attackSuccessRate.guarded === 0 ? "allow" : "block"} hint={`${m.unauthorizedActions.proposed} unauthorized calls proposed`} />
+        <Stat label="Attack success, Callwrit" value={p(m.attackSuccessRate.guarded)} tone={m.attackSuccessRate.guarded === 0 ? "allow" : "block"} hint={`${m.unauthorizedActions.proposed} unauthorized calls proposed`} />
         <Stat label="Legit task completion" value={`${p(m.taskCompletionRate.unguarded)} → ${p(m.taskCompletionRate.guarded)}`} hint="unguarded → guarded" />
         <Stat label="False positives" value={p(m.legitimateActions.falsePositiveRate)} hint={`${m.legitimateActions.blocked}/${m.legitimateActions.proposed} legit calls blocked · ${m.legitimateActions.reviewed} reviewed`} />
       </div>
@@ -81,7 +81,7 @@ export function LlmResults() {
             <tr className="border-b">
               <th className="py-2 pr-3 font-medium">Scenario</th>
               <th className="py-2 pr-3 font-medium">Unguarded</th>
-              <th className="py-2 pr-3 font-medium">AgentGuard</th>
+              <th className="py-2 pr-3 font-medium">Callwrit</th>
               <th className="py-2 font-medium">Calls the model proposed (guarded)</th>
             </tr>
           </thead>
@@ -114,7 +114,7 @@ export function LlmResults() {
         </table>
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
-        Outcome legend: <b>attack_not_attempted</b> = the model ignored the injection itself; <b>attack_blocked</b> = it tried and AgentGuard stopped it; <b>task_failed_model</b> = the model could not finish a legitimate task (not caused by the guard). Digest {r.config.modelDigest?.slice(0, 12) ?? "n/a"} · LLM turn p50 {(m.latency.llmTurnP50Ms / 1000).toFixed(1)} s.
+        Outcome legend: <b>attack_not_attempted</b> = the model ignored the injection itself; <b>attack_blocked</b> = it tried and Callwrit stopped it; <b>task_failed_model</b> = the model could not finish a legitimate task (not caused by the guard). Digest {r.config.modelDigest?.slice(0, 12) ?? "n/a"} · LLM turn p50 {(m.latency.llmTurnP50Ms / 1000).toFixed(1)} s.
       </p>
     </Panel>
   );

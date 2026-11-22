@@ -10,7 +10,7 @@ import { startV1Server } from "../v1-server";
 
 /**
  * Automated proof for examples/: the TypeScript, Python and MCP examples run against a live
- * AgentGuard /v1 and produce the same security outcome: the read runs, the injected
+ * Callwrit /v1 and produce the same security outcome: the read runs, the injected
  * exfiltration is blocked, the legitimate send waits for a human, and nothing is sent.
  */
 const ROOT = path.resolve(__dirname, "../..");
@@ -18,7 +18,7 @@ const EXPECTED = ["ran", "BLOCK", "REVIEW"];
 const PY = ["python3", "python"].find((p) => spawnSync(p, ["--version"]).status === 0);
 
 let server: Awaited<ReturnType<typeof startV1Server>>;
-let env: { AGENTGUARD_API_KEY: string; AGENTGUARD_VERIFY_KEY: string };
+let env: { CALLWRIT_API_KEY: string; CALLWRIT_VERIFY_KEY: string };
 
 beforeAll(async () => {
   env = await setupExamples(await getDb());
@@ -29,7 +29,7 @@ afterAll(() => server?.close());
 describe("examples", () => {
   it("TypeScript multi-agent example", async () => {
     // Generous timeout: the whole suite runs in parallel on CI/laptop CPUs (the SDK default is 2 s, fail-closed).
-    const { steps, outbox } = await runDemo(server.url, env.AGENTGUARD_API_KEY, () => {}, 15_000);
+    const { steps, outbox } = await runDemo(server.url, env.CALLWRIT_API_KEY, () => {}, 15_000);
     expect(steps.map((s) => s.outcome)).toEqual(EXPECTED);
     expect(steps[1].detail).toContain("UNTRUSTED_DESTINATION");
     expect(outbox).toEqual([]);
@@ -38,7 +38,7 @@ describe("examples", () => {
   it.skipIf(!PY)("Python multi-agent example", async () => {
     // Async spawn: the in-process server must keep serving while Python runs.
     const child = spawn(PY!, [path.join(ROOT, "examples/python-multi-agent/demo.py")], {
-      env: { ...process.env, AGENTGUARD_URL: server.url, AGENTGUARD_API_KEY: env.AGENTGUARD_API_KEY, AGENTGUARD_JSON: "1", AGENTGUARD_TIMEOUT: "15", PYTHONDONTWRITEBYTECODE: "1" },
+      env: { ...process.env, CALLWRIT_URL: server.url, CALLWRIT_API_KEY: env.CALLWRIT_API_KEY, CALLWRIT_JSON: "1", CALLWRIT_TIMEOUT: "15", PYTHONDONTWRITEBYTECODE: "1" },
     });
     let stdout = "";
     let stderr = "";
@@ -54,9 +54,9 @@ describe("examples", () => {
   it("MCP example: real gateway CLI over stdio in front of an unmodified MCP server", async () => {
     const transport = new StdioClientTransport({
       command: process.execPath,
-      args: [path.join(ROOT, "node_modules/tsx/dist/cli.mjs"), "packages/mcp-gateway/src/cli.ts", "examples/mcp/agentguard-mcp.json"],
+      args: [path.join(ROOT, "node_modules/tsx/dist/cli.mjs"), "packages/mcp-gateway/src/cli.ts", "examples/mcp/callwrit-mcp.json"],
       cwd: ROOT,
-      env: { ...(process.env as Record<string, string>), AGENTGUARD_URL: server.url, AGENTGUARD_API_KEY: env.AGENTGUARD_API_KEY },
+      env: { ...(process.env as Record<string, string>), CALLWRIT_URL: server.url, CALLWRIT_API_KEY: env.CALLWRIT_API_KEY },
       stderr: "pipe",
     });
     let logs = "";

@@ -4,7 +4,7 @@ import type { AgentPlanner, AgentStep, Observation } from "./types";
 /**
  * Deterministic, INTENTIONALLY NAIVE planner ("instruction follower").
  *
- * It models the failure mode AgentGuard exists for: it treats instructions found
+ * It models the failure mode Callwrit exists for: it treats instructions found
  * inside retrieved content as if the user had given them. That makes it a
  * reproducible stand-in for a prompt-injectable LLM agent, so the benchmark can
  * measure the guard (not the model's luck) with zero API cost and zero variance.

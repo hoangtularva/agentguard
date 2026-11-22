@@ -36,13 +36,13 @@ beforeAll(async () => {
   await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
   host = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   process.env.OLLAMA_HOST = host;
-  process.env.AGENTGUARD_OLLAMA_MODEL = "fake:1b";
+  process.env.CALLWRIT_OLLAMA_MODEL = "fake:1b";
 });
 
 afterAll(() => {
   server.close();
   delete process.env.OLLAMA_HOST;
-  delete process.env.AGENTGUARD_OLLAMA_MODEL;
+  delete process.env.CALLWRIT_OLLAMA_MODEL;
 });
 
 const req = (timeoutMs = 5000): ChatRequest => ({

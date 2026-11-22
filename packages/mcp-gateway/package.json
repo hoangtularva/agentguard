@@ -1,12 +1,12 @@
 {
-  "name": "@agentguard/mcp-gateway",
+  "name": "@callwrit/mcp-gateway",
   "version": "0.1.0",
-  "description": "MCP proxy that checks every tools/call with AgentGuard before it reaches the upstream MCP server.",
+  "description": "MCP proxy that checks every tools/call with Callwrit before it reaches the upstream MCP server.",
   "license": "AGPL-3.0-only",
   "type": "module",
-  "bin": { "agentguard-mcp": "./dist/cli.js" },
+  "bin": { "callwrit-mcp": "./dist/cli.js" },
   "main": "./dist/gateway.js",
-  "files": ["dist", "README.md", "agentguard-mcp.example.json"],
+  "files": ["dist", "README.md", "callwrit-mcp.example.json"],
   "engines": { "node": ">=20" },
   "scripts": {
     "build": "esbuild src/cli.ts src/gateway.ts --bundle --platform=node --format=esm --target=node20 --external:@modelcontextprotocol/sdk --outdir=dist"

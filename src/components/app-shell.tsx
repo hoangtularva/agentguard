@@ -60,7 +60,7 @@ function Brand({ collapsed }: { collapsed: boolean }) {
       </span>
       {!collapsed && (
         <span className="text-sm font-semibold tracking-tight">
-          AgentGuard <span className="font-normal text-muted-foreground">/ demo</span>
+          Callwrit <span className="font-normal text-muted-foreground">/ demo</span>
         </span>
       )}
     </Link>
@@ -201,7 +201,7 @@ export function AppShell({ children, user, users, pending, demoAuth }: { childre
               <NavLinks collapsed={false} pending={pending} onNavigate={() => setMobileOpen(false)} />
             </SheetContent>
           </Sheet>
-          <span className="text-sm font-semibold md:hidden">AgentGuard</span>
+          <span className="text-sm font-semibold md:hidden">Callwrit</span>
           <div className="ml-auto flex items-center gap-2">
             {demoAuth ? (
               <UserSwitcher user={user} users={users} />

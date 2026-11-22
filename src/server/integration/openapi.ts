@@ -28,10 +28,10 @@ export function openApiDocument() {
   return {
     openapi: "3.1.0",
     info: {
-      title: "AgentGuard Decision API",
+      title: "Callwrit Decision API",
       version: "1.0.0",
       description:
-        "Check every tool call an AI agent proposes before it runs. AgentGuard decides (ALLOW / REVIEW / BLOCK); your app executes. " +
+        "Check every tool call an AI agent proposes before it runs. Callwrit decides (ALLOW / REVIEW / BLOCK); your app executes. " +
         "Fail closed: treat timeouts and errors as BLOCK for any tool that sends data out.",
     },
     servers: [{ url: "/" }],

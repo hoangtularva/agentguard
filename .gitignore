@@ -40,7 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# AgentGuard
+# Callwrit
 .data/
 bench-results/*.json
 !bench-results/.gitkeep

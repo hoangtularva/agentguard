@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * agentguard-mcp <config.json>
+ * callwrit-mcp <config.json>
  *
  * Runs as a stdio MCP server for the client, and launches the upstream MCP server (stdio) or
  * connects to it (Streamable HTTP). Secrets stay out of the config file: values written as
@@ -29,11 +29,11 @@ const resolveEnv = (v: unknown): unknown => {
 };
 
 async function main() {
-  const file = process.argv[2] ?? process.env.AGENTGUARD_MCP_CONFIG;
-  if (!file) throw new Error("usage: agentguard-mcp <config.json>");
+  const file = process.argv[2] ?? process.env.CALLWRIT_MCP_CONFIG;
+  if (!file) throw new Error("usage: callwrit-mcp <config.json>");
   const cfg = resolveEnv(JSON.parse(fs.readFileSync(file, "utf8"))) as FileConfig;
 
-  const upstream = new Client({ name: "agentguard-gateway", version: "0.1.0" });
+  const upstream = new Client({ name: "callwrit-gateway", version: "0.1.0" });
   await upstream.connect(
     "url" in cfg.upstream
       ? new StreamableHTTPClientTransport(new URL(cfg.upstream.url))
@@ -43,10 +43,10 @@ async function main() {
   await gateway.start();
   await gateway.server.connect(new StdioServerTransport());
   // Logs go to stderr: stdout is the MCP channel.
-  console.error(`[agentguard-mcp] guarding ${Object.keys(cfg.tools).length} tool(s) via ${cfg.agentguard.baseUrl}`);
+  console.error(`[callwrit-mcp] guarding ${Object.keys(cfg.tools).length} tool(s) via ${cfg.callwrit.baseUrl}`);
 }
 
 main().catch((e) => {
-  console.error(`[agentguard-mcp] ${(e as Error).message}`);
+  console.error(`[callwrit-mcp] ${(e as Error).message}`);
   process.exit(1);
 });

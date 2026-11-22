@@ -27,7 +27,7 @@ describe("tool-side DecisionVerifier (offline)", () => {
       return Response.json({ sent: a.to });
     });
     const req = (t?: string, body: unknown = args) =>
-      new Request("http://tool/send", { method: "POST", headers: t ? { "x-agentguard-token": t } : {}, body: JSON.stringify(body) });
+      new Request("http://tool/send", { method: "POST", headers: t ? { "x-callwrit-token": t } : {}, body: JSON.stringify(body) });
     expect((await handler(req())).status).toBe(403);
     expect((await handler(req(token("d"), { ...args, body: "changed" }))).status).toBe(403);
     const ok = await handler(req(token("e")));

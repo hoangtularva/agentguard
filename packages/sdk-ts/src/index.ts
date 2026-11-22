@@ -1,7 +1,7 @@
 /**
- * @agentguard/sdk — guard any agent's tool calls with an AgentGuard server.
+ * @callwrit/sdk — guard any agent's tool calls with an Callwrit server.
  *
- *   const ag = new AgentGuard({ baseUrl, apiKey });
+ *   const ag = new Callwrit({ baseUrl, apiKey });
  *   const session = await ag.startSession({ userRef, agentId, prompt, mandate: { tools: ["send_email"] } });
  *   const sendEmail = session.guard("send_email", realSendEmail);   // same signature, now checked
  *
@@ -35,7 +35,7 @@ export interface CheckResult {
   decisionTokenExpiresAt?: string;
 }
 
-export interface AgentGuardOptions {
+export interface CallwritOptions {
   baseUrl: string;
   apiKey: string;
   /** Per-request timeout. Default 2000 ms. */
@@ -43,23 +43,23 @@ export interface AgentGuardOptions {
   /** Send fingerprints instead of content when registering sources/outputs. Default true. */
   privacy?: boolean;
   /**
-   * "closed" (default): AgentGuard unreachable ⇒ nothing runs.
-   * "allow-reads": guards marked `readOnly` may run when AgentGuard is unreachable. Sinks never fail open.
+   * "closed" (default): Callwrit unreachable ⇒ nothing runs.
+   * "allow-reads": guards marked `readOnly` may run when Callwrit is unreachable. Sinks never fail open.
    */
   failMode?: "closed" | "allow-reads";
   fetch?: typeof fetch;
 }
 
 /** The call was not allowed. `decision` is BLOCK, or REVIEW that was rejected/expired/timed out. */
-export class AgentGuardBlockedError extends Error {
+export class CallwritBlockedError extends Error {
   constructor(
     readonly tool: string,
     readonly decision: Decision | "UNAVAILABLE",
     readonly reasons: Reason[],
     readonly callId?: string,
   ) {
-    super(`AgentGuard ${decision === "UNAVAILABLE" ? "unavailable (fail closed)" : decision} for ${tool}: ${reasons.map((r) => r.message).join(" ") || "no reason given"}`);
-    this.name = "AgentGuardBlockedError";
+    super(`Callwrit ${decision === "UNAVAILABLE" ? "unavailable (fail closed)" : decision} for ${tool}: ${reasons.map((r) => r.message).join(" ") || "no reason given"}`);
+    this.name = "CallwritBlockedError";
   }
 }
 
@@ -91,7 +91,7 @@ export type ToolFn<R> = (args: Args, ctx: ToolContext) => R | Promise<R>;
 export interface GuardOptions {
   /** REVIEW: wait for a human (polling) instead of throwing ApprovalRequiredError. */
   waitForApproval?: boolean | { timeoutMs?: number; intervalMs?: number };
-  /** A read-only tool (may run under failMode "allow-reads" when AgentGuard is unreachable). */
+  /** A read-only tool (may run under failMode "allow-reads" when Callwrit is unreachable). */
   readOnly?: boolean;
   /** Register the tool's output as untrusted provenance for later calls. Default true. */
   reportOutput?: boolean;
@@ -101,16 +101,16 @@ export interface GuardOptions {
 }
 
 export interface ToolContext {
-  /** Signed, single-use proof for the tool backend (verify with @agentguard/sdk/verify or /v1/tokens/verify). */
+  /** Signed, single-use proof for the tool backend (verify with @callwrit/sdk/verify or /v1/tokens/verify). */
   decisionToken?: string;
   callId: string;
 }
 
-export class AgentGuard {
+export class Callwrit {
   private readonly base: string;
-  private readonly opts: Required<Omit<AgentGuardOptions, "fetch" | "baseUrl" | "apiKey">> & { fetch: typeof fetch };
+  private readonly opts: Required<Omit<CallwritOptions, "fetch" | "baseUrl" | "apiKey">> & { fetch: typeof fetch };
 
-  constructor(private readonly o: AgentGuardOptions) {
+  constructor(private readonly o: CallwritOptions) {
     this.base = o.baseUrl.replace(/\/+$/, "");
     this.opts = { timeoutMs: o.timeoutMs ?? 2000, privacy: o.privacy ?? true, failMode: o.failMode ?? "closed", fetch: o.fetch ?? fetch };
   }
@@ -172,7 +172,7 @@ const asText = (v: unknown) => (typeof v === "string" ? v : JSON.stringify(v) ??
 
 export class Session {
   constructor(
-    private readonly ag: AgentGuard,
+    private readonly ag: Callwrit,
     readonly id: string,
     readonly agentId: string,
   ) {}
@@ -213,7 +213,7 @@ export class Session {
       if (a.status === "approved")
         return this.ag.request<{ decisionToken?: string; callId: string }>("POST", `/v1/approvals/${encodeURIComponent(approvalId)}/consume`);
       if (a.status !== "pending" || Date.now() > deadline)
-        throw new AgentGuardBlockedError("approval", "REVIEW", [{ code: `APPROVAL_${a.status.toUpperCase()}`, message: `Approval is ${a.status}.` }], a.callId);
+        throw new CallwritBlockedError("approval", "REVIEW", [{ code: `APPROVAL_${a.status.toUpperCase()}`, message: `Approval is ${a.status}.` }], a.callId);
       await new Promise((r) => setTimeout(r, o.intervalMs ?? 2000));
     }
   }
@@ -237,10 +237,10 @@ export class Session {
       } catch (err) {
         const unavailable = !(err instanceof HttpError) || err.status >= 500 || err.status === 429;
         if (unavailable && o.readOnly && this.ag.failMode === "allow-reads") return fn(args, { callId: "unchecked" });
-        throw new AgentGuardBlockedError(tool, unavailable ? "UNAVAILABLE" : "BLOCK", [{ code: "AGENTGUARD_ERROR", message: (err as Error).message }]);
+        throw new CallwritBlockedError(tool, unavailable ? "UNAVAILABLE" : "BLOCK", [{ code: "CALLWRIT_ERROR", message: (err as Error).message }]);
       }
       let ctx: ToolContext = { callId: r.callId, decisionToken: r.decisionToken };
-      if (r.decision === "BLOCK") throw new AgentGuardBlockedError(tool, "BLOCK", r.reasons, r.callId);
+      if (r.decision === "BLOCK") throw new CallwritBlockedError(tool, "BLOCK", r.reasons, r.callId);
       if (r.decision === "REVIEW") {
         if (!o.waitForApproval) throw new ApprovalRequiredError(tool, r.approvalId!, r.reasons, r.callId);
         const w = await this.waitForApproval(r.approvalId!, typeof o.waitForApproval === "object" ? o.waitForApproval : {});

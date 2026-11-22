@@ -1,8 +1,8 @@
-"""Offline verification of AgentGuard decision tokens.
+"""Offline verification of Callwrit decision tokens.
 
 agt1.<payload>.<HMAC-SHA256>  needs the app's shared key (stdlib only).
 agt2.<payload>.<Ed25519>      needs the app's public key (GET /v1/keys/<app>) and the optional
-                              `cryptography` package (pip install agentguard-sdk[ed25519]).
+                              `cryptography` package (pip install callwrit[ed25519]).
 """
 from __future__ import annotations
 
@@ -49,7 +49,7 @@ def verify_decision_token(token: str, *, tool: str, args: dict, key: str | None 
     """
     parts = token.split(".") if isinstance(token, str) else []
     if len(parts) != 3 or parts[0] not in ("agt1", "agt2"):
-        raise TokenError("MALFORMED", "Not an AgentGuard decision token.")
+        raise TokenError("MALFORMED", "Not an Callwrit decision token.")
     signed = f"{parts[0]}.{parts[1]}".encode()
     if parts[0] == "agt1":
         if not key:
@@ -63,7 +63,7 @@ def verify_decision_token(token: str, *, tool: str, args: dict, key: str | None 
             from cryptography.exceptions import InvalidSignature
             from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
         except ImportError:
-            raise TokenError("UNSUPPORTED", "Install `cryptography` for Ed25519 tokens, or verify online with AgentGuard.verify_token().") from None
+            raise TokenError("UNSUPPORTED", "Install `cryptography` for Ed25519 tokens, or verify online with Callwrit.verify_token().") from None
         try:
             Ed25519PublicKey.from_public_bytes(_b64d(public_key)).verify(_b64d(parts[2]), signed)
         except (InvalidSignature, ValueError):
@@ -84,7 +84,7 @@ class TokenVerifier:
     """Offline verifier with per-process single use (cache of seen token ids until expiry).
 
     Use in the service that performs the side effect; for replicated tools prefer
-    `AgentGuard.verify_token` (server-side single use).
+    `Callwrit.verify_token` (server-side single use).
     """
 
     def __init__(self, key: str | None = None, app_id: str | None = None, public_key: str | None = None):
@@ -92,7 +92,7 @@ class TokenVerifier:
 
     def verify(self, token: str | None, tool: str, args: dict) -> dict:
         if not token:
-            raise TokenError("MISSING", "No AgentGuard decision token.")
+            raise TokenError("MISSING", "No Callwrit decision token.")
         now = time.time()
         payload = verify_decision_token(token, key=self.key, public_key=self.public_key, tool=tool, args=args, app_id=self.app_id, now=now)
         self._seen = {j: e for j, e in self._seen.items() if e >= now}
@@ -102,14 +102,14 @@ class TokenVerifier:
         return payload
 
     def protect(self, tool: str):
-        """Decorator for tool implementations called as fn(agentguard_token=..., **args)."""
+        """Decorator for tool implementations called as fn(callwrit_token=..., **args)."""
 
         def deco(fn):
             import functools
 
             @functools.wraps(fn)
-            def wrapper(*, agentguard_token: str | None = None, **args):
-                self.verify(agentguard_token, tool, args)
+            def wrapper(*, callwrit_token: str | None = None, **args):
+                self.verify(callwrit_token, tool, args)
                 return fn(**args)
 
             return wrapper

@@ -7,7 +7,7 @@ import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
  * decides who acts. There is NO implicit default user: requests without a valid cookie are
  * unauthenticated (401 on APIs, sign-in screen on pages).
  *
- * Choosing an identity ("demo sign-in") is only possible when AGENTGUARD_DEMO_AUTH is
+ * Choosing an identity ("demo sign-in") is only possible when CALLWRIT_DEMO_AUTH is
  * enabled. It is ON by default outside production and must be set explicitly in production.
  * Anyone who can reach a server with demo auth enabled can act as any demo user, including
  * approvers: never expose such a deployment beyond localhost. Real deployments replace this
@@ -42,7 +42,7 @@ export function decodeIdentity(raw: string | undefined | null): string | null {
 }
 
 export function demoAuthEnabled(env: Record<string, string | undefined> = process.env): boolean {
-  const v = env.AGENTGUARD_DEMO_AUTH;
+  const v = env.CALLWRIT_DEMO_AUTH;
   if (v === "1" || v === "true") return true;
   if (v === "0" || v === "false") return false;
   return env.NODE_ENV !== "production";

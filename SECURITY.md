@@ -1,6 +1,6 @@
 # Security policy
 
-AgentGuard is a **research / portfolio project**. It is not production-ready. Read [docs/threat-model.md](docs/threat-model.md) and [docs/security-boundaries.md](docs/security-boundaries.md) before using any part of it to protect real systems.
+Callwrit is a **research / portfolio project**. It is not production-ready. Read [docs/threat-model.md](docs/threat-model.md) and [docs/security-boundaries.md](docs/security-boundaries.md) before using any part of it to protect real systems.
 
 ## Reporting a vulnerability
 

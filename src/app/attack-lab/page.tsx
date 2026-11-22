@@ -36,7 +36,7 @@ export default async function AttackLabPage() {
     <>
       <PageHeader
         title="Attack Lab"
-        description="Run the security suite: prompt injection, tool-output injection, out-of-scope access, exfiltration, missing policy, and approval replay/tampering — compared against the same agent without AgentGuard."
+        description="Run the security suite: prompt injection, tool-output injection, out-of-scope access, exfiltration, missing policy, and approval replay/tampering — compared against the same agent without Callwrit."
       />
       <AttackLab
         scenarios={scenarios}

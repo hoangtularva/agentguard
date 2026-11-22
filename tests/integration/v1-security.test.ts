@@ -97,12 +97,12 @@ describe("/v1 red-team regressions", () => {
 
   it("rate-limits a runaway client per key (429)", async () => {
     // A low limit makes the test independent of machine speed.
-    process.env.AGENTGUARD_V1_RATE = "5";
+    process.env.CALLWRIT_V1_RATE = "5";
     const flood = await Promise.all(Array.from({ length: 140 }, () => call(getApproval as H, red, undefined, { id: "apr_x" }, "GET")));
     const codes = new Set(flood.map((r) => r.status));
     expect(codes.has(429)).toBe(true);
     expect(codes.has(404)).toBe(true);
-    delete process.env.AGENTGUARD_V1_RATE;
+    delete process.env.CALLWRIT_V1_RATE;
   });
 });
 

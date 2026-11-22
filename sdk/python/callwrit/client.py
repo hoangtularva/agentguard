@@ -1,6 +1,6 @@
-"""AgentGuard client: check every tool call of any Python agent before it runs.
+"""Callwrit client: check every tool call of any Python agent before it runs.
 
-Zero dependencies (urllib). Fail closed by default: if AgentGuard cannot be reached, guarded
+Zero dependencies (urllib). Fail closed by default: if Callwrit cannot be reached, guarded
 tools do not run.
 """
 from __future__ import annotations
@@ -17,12 +17,12 @@ from typing import Any, Callable, Optional
 from .provenance import detect_injection_signals, extract_fingerprints
 
 
-class AgentGuardBlocked(Exception):
-    """The call was not allowed (BLOCK, rejected/expired approval, or AgentGuard unavailable)."""
+class CallwritBlocked(Exception):
+    """The call was not allowed (BLOCK, rejected/expired approval, or Callwrit unavailable)."""
 
     def __init__(self, tool: str, decision: str, reasons: list[dict], call_id: Optional[str] = None):
         msg = " ".join(r.get("message", "") for r in reasons) or "no reason given"
-        super().__init__(f"AgentGuard {decision} for {tool}: {msg}")
+        super().__init__(f"Callwrit {decision} for {tool}: {msg}")
         self.tool, self.decision, self.reasons, self.call_id = tool, decision, reasons, call_id
 
 
@@ -47,12 +47,12 @@ class ToolContext:
 
 
 @dataclass
-class AgentGuard:
+class Callwrit:
     base_url: str
     api_key: str
     timeout: float = 2.0
     privacy: bool = True
-    #: "closed" (default) or "allow-reads": read-only guards may run when AgentGuard is unreachable.
+    #: "closed" (default) or "allow-reads": read-only guards may run when Callwrit is unreachable.
     fail_mode: str = "closed"
     _opener: Any = field(default=None, repr=False)
 
@@ -99,7 +99,7 @@ class AgentGuard:
 
 @dataclass
 class Session:
-    ag: AgentGuard
+    ag: Callwrit
     id: str
     agent_id: str
 
@@ -133,7 +133,7 @@ class Session:
             if a["status"] == "approved":
                 return self.ag.request("POST", f"/v1/approvals/{approval_id}/consume")
             if a["status"] != "pending" or time.monotonic() > deadline:
-                raise AgentGuardBlocked("approval", "REVIEW", [{"code": f"APPROVAL_{a['status'].upper()}", "message": f"Approval is {a['status']}."}], a.get("callId"))
+                raise CallwritBlocked("approval", "REVIEW", [{"code": f"APPROVAL_{a['status'].upper()}", "message": f"Approval is {a['status']}."}], a.get("callId"))
             time.sleep(interval)
 
     def report_result(self, call_id: str, *, ok: bool, output: Any = None, summary: Optional[dict] = None) -> None:
@@ -152,8 +152,8 @@ class Session:
     def guard(self, tool: str, fn: Callable[..., Any], *, wait: bool = False, read_only: bool = False,
               report_output: bool = True, wait_timeout: float = 600, wait_interval: float = 2.0) -> Callable[..., Any]:
         """Wrap `fn(**args)`. It runs only on ALLOW (or after approval). If `fn` accepts a keyword
-        argument `agentguard`, it receives a ToolContext with the decision token."""
-        wants_ctx = "agentguard" in inspect.signature(fn).parameters
+        argument `callwrit`, it receives a ToolContext with the decision token."""
+        wants_ctx = "callwrit" in inspect.signature(fn).parameters
 
         @functools.wraps(fn)
         def wrapper(**args: Any) -> Any:
@@ -163,17 +163,17 @@ class Session:
                 unavailable = not isinstance(e, _HttpError) or e.status >= 500 or e.status == 429
                 if unavailable and read_only and self.ag.fail_mode == "allow-reads":
                     return fn(**args)
-                raise AgentGuardBlocked(tool, "UNAVAILABLE" if unavailable else "BLOCK", [{"code": "AGENTGUARD_ERROR", "message": str(e)}]) from None
+                raise CallwritBlocked(tool, "UNAVAILABLE" if unavailable else "BLOCK", [{"code": "CALLWRIT_ERROR", "message": str(e)}]) from None
             ctx = ToolContext(r["callId"], r.get("decisionToken"))
             if r["decision"] == "BLOCK":
-                raise AgentGuardBlocked(tool, "BLOCK", r["reasons"], r["callId"])
+                raise CallwritBlocked(tool, "BLOCK", r["reasons"], r["callId"])
             if r["decision"] == "REVIEW":
                 if not wait:
                     raise ApprovalRequired(tool, r["approvalId"], r["reasons"], r["callId"])
                 w = self.wait_for_approval(r["approvalId"], wait_timeout, wait_interval)
                 ctx = ToolContext(w["callId"], w.get("decisionToken"))
             try:
-                out = fn(**args, agentguard=ctx) if wants_ctx else fn(**args)
+                out = fn(**args, callwrit=ctx) if wants_ctx else fn(**args)
             except Exception as e:
                 self.report_result(ctx.call_id, ok=False, summary={"error": str(e)[:200]})
                 raise

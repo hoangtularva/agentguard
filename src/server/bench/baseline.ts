@@ -1,7 +1,7 @@
 /**
  * BENCHMARK-ONLY UNGUARDED BASELINE.
  *
- * Runs the same planner against the same mock executors WITHOUT AgentGuard, to
+ * Runs the same planner against the same mock executors WITHOUT Callwrit, to
  * measure what happens when an agent calls tools directly (argument validation only).
  * It is the single documented exception to the "executors only via PEP" rule and is
  * never reachable from app request handlers that act on user data: it runs against an

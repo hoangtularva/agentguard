@@ -1,7 +1,7 @@
 {
-  "name": "@agentguard/sdk",
+  "name": "@callwrit/sdk",
   "version": "0.1.0",
-  "description": "Guard AI agent tool calls with an AgentGuard server: check before run, approvals, decision tokens. Zero runtime dependencies.",
+  "description": "Guard AI agent tool calls with an Callwrit server: check before run, approvals, decision tokens. Zero runtime dependencies.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",

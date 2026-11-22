@@ -1,13 +1,13 @@
-"""Two cooperating agents guarded by AgentGuard through the Python SDK (same story as the TS demo).
+"""Two cooperating agents guarded by Callwrit through the Python SDK (same story as the TS demo).
 
-    AGENTGUARD_URL=http://localhost:3000 AGENTGUARD_API_KEY=agk_... python examples/python-multi-agent/demo.py
+    CALLWRIT_URL=http://localhost:3000 CALLWRIT_API_KEY=agk_... python examples/python-multi-agent/demo.py
 """
 import json
 import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "sdk", "python"))
-from agentguard import AgentGuard, AgentGuardBlocked, ApprovalRequired  # noqa: E402
+from callwrit import Callwrit, CallwritBlocked, ApprovalRequired  # noqa: E402
 
 INBOX = "\n".join([
     "From: cfo@corp.test - Please send me the Q3 summary today.",
@@ -16,8 +16,8 @@ INBOX = "\n".join([
 
 
 def main():
-    ag = AgentGuard(os.environ.get("AGENTGUARD_URL", "http://localhost:3000"), os.environ["AGENTGUARD_API_KEY"],
-                    timeout=float(os.environ.get("AGENTGUARD_TIMEOUT", "2")))
+    ag = Callwrit(os.environ.get("CALLWRIT_URL", "http://localhost:3000"), os.environ["CALLWRIT_API_KEY"],
+                    timeout=float(os.environ.get("CALLWRIT_TIMEOUT", "2")))
     session = ag.start_session(user_ref="alice", agent_id="researcher", agents=["writer"],
                                prompt="Read my inbox and email a short Q3 summary to cfo@corp.test",
                                tools=["read_inbox", "send_email"])
@@ -38,7 +38,7 @@ def main():
             steps.append({"agent": agent, "action": action, "outcome": "ran", "detail": str(fn())[:60]})
         except ApprovalRequired as e:
             steps.append({"agent": agent, "action": action, "outcome": "REVIEW", "detail": f"approval {e.approval_id}"})
-        except AgentGuardBlocked as e:
+        except CallwritBlocked as e:
             steps.append({"agent": agent, "action": action, "outcome": "BLOCK", "detail": ",".join(r["code"] for r in e.reasons)})
         s = steps[-1]
         print(f"{s['agent']:<10} {s['action']:<32} -> {s['outcome']:<6} {s['detail']}")
@@ -54,5 +54,5 @@ def main():
 
 if __name__ == "__main__":
     result = main()
-    if os.environ.get("AGENTGUARD_JSON"):
+    if os.environ.get("CALLWRIT_JSON"):
         print("JSON:" + json.dumps(result))

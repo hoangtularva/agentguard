@@ -1,8 +1,8 @@
-# AgentGuard as a SIDECAR next to your own agent app.
+# Callwrit as a SIDECAR next to your own agent app.
 #
 #   docker compose -f docker-compose.sidecar.yml up -d --build
 #
-# Your agent services join the `agentguard` network and call http://agentguard:3000/v1
+# Your agent services join the `callwrit` network and call http://callwrit:3000/v1
 # with an API key. Create the app and keys in the UI (http://127.0.0.1:3001, sign in as
 # an approver, "Apps & API keys").
 #
@@ -10,52 +10,52 @@
 #   services:
 #     my-agent:
 #       environment:
-#         AGENTGUARD_URL: http://agentguard:3000
-#         AGENTGUARD_API_KEY: ${AGENTGUARD_API_KEY}
-#       networks: [default, agentguard]
+#         CALLWRIT_URL: http://callwrit:3000
+#         CALLWRIT_API_KEY: ${CALLWRIT_API_KEY}
+#       networks: [default, callwrit]
 #   networks:
-#     agentguard:
+#     callwrit:
 #       external: true
-#       name: agentguard
+#       name: callwrit
 #
 # Security notes
-#  - /v1 is reachable only on the private `agentguard` network; nothing is published
+#  - /v1 is reachable only on the private `callwrit` network; nothing is published
 #    except the approval UI, bound to 127.0.0.1.
 #  - The UI uses DEMO identities (no IdP). Keep it on localhost / behind your SSO proxy.
 #  - Set AUTH_SECRET once and keep it: decision-token keys are derived from it.
 services:
-  agentguard-db:
+  callwrit-db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: agentguard
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-agentguard-sidecar-local}
-      POSTGRES_DB: agentguard
+      POSTGRES_USER: callwrit
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-callwrit-sidecar-local}
+      POSTGRES_DB: callwrit
     volumes:
-      - agentguard-sidecar-pg:/var/lib/postgresql/data
+      - callwrit-sidecar-pg:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U agentguard -d agentguard"]
+      test: ["CMD-SHELL", "pg_isready -U callwrit -d callwrit"]
       interval: 5s
       timeout: 3s
       retries: 20
     networks: [internal]
 
-  agentguard:
+  callwrit:
     build: .
     depends_on:
-      agentguard-db:
+      callwrit-db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgres://agentguard:${POSTGRES_PASSWORD:-agentguard-sidecar-local}@agentguard-db:5432/agentguard
+      DATABASE_URL: postgres://callwrit:${POSTGRES_PASSWORD:-callwrit-sidecar-local}@callwrit-db:5432/callwrit
       AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET (>=16 chars) and keep it stable}
-      AGENTGUARD_DEMO_AUTH: ${AGENTGUARD_DEMO_AUTH:-1}
+      CALLWRIT_DEMO_AUTH: ${CALLWRIT_DEMO_AUTH:-1}
     ports:
-      - "127.0.0.1:${AGENTGUARD_UI_PORT:-3001}:3000"
-    networks: [internal, agentguard]
+      - "127.0.0.1:${CALLWRIT_UI_PORT:-3001}:3000"
+    networks: [internal, callwrit]
 
 networks:
   internal: {}
-  agentguard:
-    name: agentguard
+  callwrit:
+    name: callwrit
 
 volumes:
-  agentguard-sidecar-pg:
+  callwrit-sidecar-pg:

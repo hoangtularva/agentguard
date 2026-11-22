@@ -1,6 +1,6 @@
 # Integration guide: guarding agents in another codebase
 
-AgentGuard decides; **your app executes**. Your agent asks before each tool call and gets **ALLOW** (with a 60-second, single-use decision token), **REVIEW** (a human approves in the Approval Inbox) or **BLOCK** (with reasons). AgentGuard never holds your tools' credentials and never performs your side effects.
+Callwrit decides; **your app executes**. Your agent asks before each tool call and gets **ALLOW** (with a 60-second, single-use decision token), **REVIEW** (a human approves in the Approval Inbox) or **BLOCK** (with reasons). Callwrit never holds your tools' credentials and never performs your side effects.
 
 ## 1. Which method?
 
@@ -8,13 +8,13 @@ AgentGuard decides; **your app executes**. Your agent asks before each tool call
 Is the agent an MCP client (Claude Desktop/Code, Cursor, an MCP-based framework)?
  ├─ yes → MCP gateway (no code changes)                                   §3.4
  └─ no  → Can you edit the code that calls tools?
-           ├─ TypeScript/JavaScript → @agentguard/sdk guardTools()        §3.1
-           ├─ Python                → agentguard-sdk session.guard()      §3.2
+           ├─ TypeScript/JavaScript → @callwrit/sdk guardTools()        §3.1
+           ├─ Python                → callwrit session.guard()      §3.2
            └─ anything else         → HTTP /v1 (OpenAPI)                   §3.3
 Do you also control the service that performs the side effect (mailer, payments, storage)?
  └─ yes → add the tool-side verifier: it refuses calls without a valid token   §3.5
 Need decisions inside your own process, no server (tests, offline evaluation)?
- └─ @agentguard/core: evaluatePolicy + ToolSpec, pure functions               §3.6
+ └─ @callwrit/core: evaluatePolicy + ToolSpec, pure functions               §3.6
 ```
 
 | Method | Code changes | Enforcement strength | Latency per call |
@@ -23,7 +23,7 @@ Need decisions inside your own process, no server (tests, offline evaluation)?
 | MCP gateway | none (config) | enforced for everything that goes through the gateway | 1 round trip |
 | HTTP `/v1` | call 2–3 endpoints | as SDK | 1 round trip |
 | Tool-side verifier | in the tool service | **enforced**: no valid token ⇒ no side effect | offline: µs; online: 1 round trip |
-| `@agentguard/core` | in process | as strong as your process | µs |
+| `@callwrit/core` | in process | as strong as your process | µs |
 
 `/v1/check` latency is measured in [benchmark-v1.md](benchmark-v1.md).
 
@@ -66,7 +66,7 @@ curl -X PUT http://localhost:3000/v1/agents/writer -H "authorization: Bearer $AD
 See [packages/sdk-ts](../packages/sdk-ts/README.md) and [examples/ts-multi-agent](../examples/ts-multi-agent/demo.ts).
 
 ```ts
-const ag = new AgentGuard({ baseUrl, apiKey: process.env.AGENTGUARD_KEY! });
+const ag = new Callwrit({ baseUrl, apiKey: process.env.CALLWRIT_KEY! });
 const session = await ag.startSession({ userRef, agentId: "researcher", agents: ["writer"], prompt: userMessage, mandate: { tools: ["read_inbox", "send_email"] } });
 const tools = guardTools(session.as("writer"), { send_email: (args, ctx) => mailer.send(args, ctx.decisionToken) });
 ```
@@ -98,28 +98,28 @@ See [packages/mcp-gateway](../packages/mcp-gateway/README.md) and [examples/mcp]
 In the service that performs the side effect:
 
 ```ts
-const verifier = new DecisionVerifier({ server: { baseUrl, apiKey: process.env.AGENTGUARD_VERIFY_KEY! } }); // or { key, appId } offline
+const verifier = new DecisionVerifier({ server: { baseUrl, apiKey: process.env.CALLWRIT_VERIFY_KEY! } }); // or { key, appId } offline
 export const POST = verifier.protect("send_email", (req, args) => sendMail(args));                       // 403 without a matching token
 ```
 
 ```python
-verifier = TokenVerifier(key=os.environ["AGENTGUARD_TOKEN_KEY"], app_id="myapp")  # npm run admin -- token-key myapp
-send_email = verifier.protect("send_email")(mailer.send)                            # call with agentguard_token=...
+verifier = TokenVerifier(key=os.environ["CALLWRIT_TOKEN_KEY"], app_id="myapp")  # npm run admin -- token-key myapp
+send_email = verifier.protect("send_email")(mailer.send)                            # call with callwrit_token=...
 ```
 
 Offline mode enforces single use per process; use online mode for replicated tool services. With Ed25519 apps, pass `publicKey` (TS) / `public_key` (Python, needs `cryptography`) instead of the shared key: the tool service then holds no secret at all.
 
 ### 3.6 Embedded core
-`@agentguard/core` exposes the pure decision point (`evaluatePolicy`), `compileToolSpec`, provenance helpers and the starter policy. No I/O, no server, no approvals or audit: use it for tests, simulations or as a building block.
+`@callwrit/core` exposes the pure decision point (`evaluatePolicy`), `compileToolSpec`, provenance helpers and the starter policy. No I/O, no server, no approvals or audit: use it for tests, simulations or as a building block.
 
-### 3.7 Running AgentGuard next to your app
-`docker compose -f docker-compose.sidecar.yml up -d --build`: `/v1` on a private `agentguard` Docker network (your services join it), approval UI on `127.0.0.1:3001`. Packages for offline installation: `npm run package` → `dist-packages/` (three `.tgz`, one `.whl`).
+### 3.7 Running Callwrit next to your app
+`docker compose -f docker-compose.sidecar.yml up -d --build`: `/v1` on a private `callwrit` Docker network (your services join it), approval UI on `127.0.0.1:3001`. Packages for offline installation: `npm run package` → `dist-packages/` (three `.tgz`, one `.whl`).
 
 ### 3.8 Policies as code
 Templates (starter, strict approvals, internal-only), YAML export/import and policy unit tests: [policies/README.md](../policies/README.md).
 
 ### 3.9 Approval notifications (opt-in)
-`npm run admin -- webhook <app> <url>` makes AgentGuard POST `approval.requested` / `approval.decided` events (ids and tool name only, never arguments), signed with `X-AgentGuard-Signature: sha256=HMAC(secret, timestamp + "." + body)`; get the secret with `npm run admin -- webhook-secret <app>`. One attempt, 3 s timeout; decisions never depend on delivery. Off by default.
+`npm run admin -- webhook <app> <url>` makes Callwrit POST `approval.requested` / `approval.decided` events (ids and tool name only, never arguments), signed with `X-Callwrit-Signature: sha256=HMAC(secret, timestamp + "." + body)`; get the secret with `npm run admin -- webhook-secret <app>`. One attempt, 3 s timeout; decisions never depend on delivery. Off by default.
 
 ## 4. Safety checklist
 
@@ -142,8 +142,8 @@ Templates (starter, strict approvals, internal-only), YAML export/import and pol
 | Token replay | single use (server `consumed_at` or verifier cache), 60 s expiry | offline verifier across replicas (use online mode) |
 | Stolen API key | hashed at rest, scopes, agent binding, revocation, per-key rate limit | a stolen `check` key can open sessions and ask for decisions (not execute) |
 | Cross-tenant access | every query scoped by app; other apps' ids → 404 | demo UI identities are not real auth: keep the UI private |
-| AgentGuard down | SDKs and gateway fail closed | availability: guarded sinks stop |
-| Sub-agent laundering | sub-agents act in the same session and see the same untrusted provenance | content that leaves AgentGuard's view (e.g. a separate pipeline) and comes back unregistered |
+| Callwrit down | SDKs and gateway fail closed | availability: guarded sinks stop |
+| Sub-agent laundering | sub-agents act in the same session and see the same untrusted provenance | content that leaves Callwrit's view (e.g. a separate pipeline) and comes back unregistered |
 | Privacy | fingerprints instead of content by default; content args hashed in audit | tool arguments themselves are sent (they are what the policy decides on) |
 
 **Not production-ready:** no IdP/OIDC for the approval UI, no HA, HMAC tokens (Ed25519 is on the roadmap), self-authored evaluation datasets. See [threat-model.md](threat-model.md).

@@ -1,5 +1,5 @@
 {
-  "agentguard": { "baseUrl": "http://localhost:3000", "apiKey": "env:AGENTGUARD_API_KEY", "adminKey": "env:AGENTGUARD_ADMIN_KEY" },
+  "callwrit": { "baseUrl": "http://localhost:3000", "apiKey": "env:CALLWRIT_API_KEY", "adminKey": "env:CALLWRIT_ADMIN_KEY" },
   "agentId": "claude-desktop",
   "userRef": "me",
   "task": "Help me with email. I may ask you to write to alice@example.com.",

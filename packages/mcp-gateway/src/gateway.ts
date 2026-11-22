@@ -1,7 +1,7 @@
 /**
- * AgentGuard MCP gateway: an MCP server that sits between any MCP client (Claude Desktop,
+ * Callwrit MCP gateway: an MCP server that sits between any MCP client (Claude Desktop,
  * Claude Code, Cursor, an agent framework) and an upstream MCP server. Every `tools/call`
- * is checked by AgentGuard first; only allowed calls reach the upstream server, and their
+ * is checked by Callwrit first; only allowed calls reach the upstream server, and their
  * results are registered as untrusted provenance. No code changes in client or server.
  *
  * Trust model: the task mandate (tools, resources, destinations) comes from the gateway's
@@ -10,7 +10,7 @@
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { CallToolRequestSchema, type CallToolResult, ListToolsRequestSchema, type Tool } from "@modelcontextprotocol/sdk/types.js";
-import { AgentGuard, AgentGuardBlockedError, ApprovalRequiredError, type Session } from "../../sdk-ts/src/index";
+import { Callwrit, CallwritBlockedError, ApprovalRequiredError, type Session } from "../../sdk-ts/src/index";
 
 export interface ToolRole {
   kind: "source" | "sink";
@@ -22,8 +22,8 @@ export interface ToolRole {
 }
 
 export interface GatewayConfig {
-  agentguard: { baseUrl: string; apiKey: string; adminKey?: string; timeoutMs?: number };
-  /** Agent identity registered in AgentGuard for this gateway. */
+  callwrit: { baseUrl: string; apiKey: string; adminKey?: string; timeoutMs?: number };
+  /** Agent identity registered in Callwrit for this gateway. */
   agentId: string;
   userRef: string;
   /** The operator's description of the task: emails/URLs in it become authorized destinations. */
@@ -50,9 +50,9 @@ export class McpGateway {
   constructor(
     private readonly cfg: GatewayConfig,
     private readonly upstream: Client,
-    private readonly ag = new AgentGuard({ baseUrl: cfg.agentguard.baseUrl, apiKey: cfg.agentguard.apiKey, timeoutMs: cfg.agentguard.timeoutMs }),
+    private readonly ag = new Callwrit({ baseUrl: cfg.callwrit.baseUrl, apiKey: cfg.callwrit.apiKey, timeoutMs: cfg.callwrit.timeoutMs }),
   ) {
-    this.server = new Server({ name: "agentguard-gateway", version: "0.1.0" }, { capabilities: { tools: {} } });
+    this.server = new Server({ name: "callwrit-gateway", version: "0.1.0" }, { capabilities: { tools: {} } });
     this.server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: this.exposed }));
     this.server.setRequestHandler(CallToolRequestSchema, (req) => this.call(req.params.name, (req.params.arguments ?? {}) as Record<string, unknown>));
   }
@@ -61,7 +61,7 @@ export class McpGateway {
   async start(): Promise<void> {
     const { tools } = await this.upstream.listTools();
     this.exposed = tools.filter((t) => Object.hasOwn(this.cfg.tools, t.name));
-    if (this.cfg.agentguard.adminKey) await this.register(this.exposed);
+    if (this.cfg.callwrit.adminKey) await this.register(this.exposed);
     this.session = await this.ag.startSession({
       userRef: this.cfg.userRef,
       agentId: this.cfg.agentId,
@@ -72,7 +72,7 @@ export class McpGateway {
 
   /** ToolSpec = the upstream MCP inputSchema + the operator's security role for the tool. */
   private async register(tools: Tool[]) {
-    const admin = new AgentGuard({ baseUrl: this.cfg.agentguard.baseUrl, apiKey: this.cfg.agentguard.adminKey! });
+    const admin = new Callwrit({ baseUrl: this.cfg.callwrit.baseUrl, apiKey: this.cfg.callwrit.adminKey! });
     for (const t of tools) {
       const role = this.cfg.tools[t.name];
       await admin.request("PUT", `/v1/tools/${encodeURIComponent(t.name)}`, {
@@ -86,14 +86,14 @@ export class McpGateway {
   }
 
   async call(name: string, args: Record<string, unknown>): Promise<CallToolResult> {
-    if (!this.session) return text("AgentGuard gateway is not started.", true);
+    if (!this.session) return text("Callwrit gateway is not started.", true);
     if (!Object.hasOwn(this.cfg.tools, name)) return text(`Tool "${name}" is not exposed by this gateway.`, true);
     const wait = this.cfg.approvalWaitSeconds ?? 300;
     let upstreamResult: CallToolResult | undefined;
     const run = this.session.guard(
       name,
       async (a, ctx) => {
-        const r = (await this.upstream.callTool({ name, arguments: a, _meta: { agentguardDecisionToken: ctx.decisionToken } })) as CallToolResult;
+        const r = (await this.upstream.callTool({ name, arguments: a, _meta: { callwritDecisionToken: ctx.decisionToken } })) as CallToolResult;
         upstreamResult = r;
         return outputText(r);
       },
@@ -104,9 +104,9 @@ export class McpGateway {
       return upstreamResult ?? text("");
     } catch (err) {
       if (err instanceof ApprovalRequiredError)
-        return text(`AgentGuard: approval required (${err.approvalId}). A human must approve this call in the AgentGuard Approval Inbox. Reasons: ${err.reasons.map((r) => r.message).join(" ")}`, true);
-      if (err instanceof AgentGuardBlockedError)
-        return text(`AgentGuard blocked this call (${err.decision}). ${err.reasons.map((r) => `[${r.code}] ${r.message}`).join(" ")} Do not retry with different wording; ask the user.`, true);
+        return text(`Callwrit: approval required (${err.approvalId}). A human must approve this call in the Callwrit Approval Inbox. Reasons: ${err.reasons.map((r) => r.message).join(" ")}`, true);
+      if (err instanceof CallwritBlockedError)
+        return text(`Callwrit blocked this call (${err.decision}). ${err.reasons.map((r) => `[${r.code}] ${r.message}`).join(" ")} Do not retry with different wording; ask the user.`, true);
       return text(`Upstream tool failed: ${(err as Error).message}`, true);
     }
   }

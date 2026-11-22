@@ -69,7 +69,7 @@ function csvCell(v: unknown) {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-/** One row per scenario run: what the agent proposed and what AgentGuard decided. */
+/** One row per scenario run: what the agent proposed and what Callwrit decided. */
 function toCsv(report: Report): string {
   const rows = [["scenario", "category", "attack", "run", "pass", "baseline_attack_succeeded", "guarded_attack_succeeded", "rubber_stamp_attack_succeeded", "guarded_decisions", "detail"]];
   for (const sc of report.scenarios) {
@@ -92,8 +92,8 @@ function Comparison({ label, a, b, lowerIsBetter = true }: { label: string; a: n
     <div>
       <div className="mb-1.5 text-xs text-muted-foreground">{label}</div>
       {[
-        { name: "Without AgentGuard", v: a, cls: "bg-muted-foreground/45" },
-        { name: "With AgentGuard", v: b, cls: lowerIsBetter ? (b <= a ? "bg-allow" : "bg-block") : b >= a ? "bg-allow" : "bg-block" },
+        { name: "Without Callwrit", v: a, cls: "bg-muted-foreground/45" },
+        { name: "With Callwrit", v: b, cls: lowerIsBetter ? (b <= a ? "bg-allow" : "bg-block") : b >= a ? "bg-allow" : "bg-block" },
       ].map((r) => (
         <div key={r.name} className="mb-1 flex items-center gap-2 text-xs">
           <span className="w-32 shrink-0 text-muted-foreground">{r.name}</span>
@@ -175,10 +175,10 @@ export function AttackLab({
           </div>
           {report && (
             <div className="flex gap-2 lg:ml-auto">
-              <Button size="sm" variant="outline" onClick={() => download(`agentguard-${report.id}.json`, JSON.stringify(report, null, 2), "application/json")}>
+              <Button size="sm" variant="outline" onClick={() => download(`callwrit-${report.id}.json`, JSON.stringify(report, null, 2), "application/json")}>
                 <Download /> JSON
               </Button>
-              <Button size="sm" variant="outline" onClick={() => download(`agentguard-${report.id}.csv`, toCsv(report), "text/csv")}>
+              <Button size="sm" variant="outline" onClick={() => download(`callwrit-${report.id}.csv`, toCsv(report), "text/csv")}>
                 <Download /> CSV
               </Button>
             </div>
@@ -193,12 +193,12 @@ export function AttackLab({
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Stat label="Scenarios passed" value={`${report.scenarios.filter((s) => s.pass).length}/${report.scenarios.length}`} tone={m.passRate === 1 ? "allow" : "block"} hint={`${report.config.runs} run(s) · ${report.durationMs} ms`} />
-            <Stat label="Attack success with AgentGuard" value={pct(m.attackSuccessRate.guarded)} tone={m.attackSuccessRate.guarded === 0 ? "allow" : "block"} hint={`${pct(m.attackSuccessRate.baseline)} without · ${pct(m.attackSuccessRate.rubberStamp)} if reviewer approves all`} />
+            <Stat label="Attack success with Callwrit" value={pct(m.attackSuccessRate.guarded)} tone={m.attackSuccessRate.guarded === 0 ? "allow" : "block"} hint={`${pct(m.attackSuccessRate.baseline)} without · ${pct(m.attackSuccessRate.rubberStamp)} if reviewer approves all`} />
             <Stat label="False positive rate" value={pct(m.legitimateActions.falsePositiveRate)} hint={`${m.legitimateActions.blocked}/${m.legitimateActions.proposed} legit calls blocked · ${pct(m.legitimateActions.reviewRate)} sent to review`} />
             <Stat label="Approval replay prevention" value={`${m.approvalReplayPrevention.prevented}/${m.approvalReplayPrevention.total}`} tone={m.approvalReplayPrevention.rate === 1 ? "allow" : "block"} hint={`PDP p50 ${m.pdpMicrobenchUs.p50} µs · PEP p95 ${m.latencyMs.pepP95} ms`} />
           </div>
           <div className="grid gap-4 lg:grid-cols-2">
-            <Panel title="Baseline vs AgentGuard" description={`Same ${report.config.planner === "claude" ? "LLM" : "simulated"} agent, same scenarios. Bars are computed from this run.`}>
+            <Panel title="Baseline vs Callwrit" description={`Same ${report.config.planner === "claude" ? "LLM" : "simulated"} agent, same scenarios. Bars are computed from this run.`}>
               <div className="space-y-4">
                 <Comparison label="Attack success rate (lower is better)" a={m.attackSuccessRate.baseline} b={m.attackSuccessRate.guarded} />
                 <Comparison label="Legitimate task completion (higher is better)" a={m.taskCompletionRate.baseline} b={m.taskCompletionRate.guarded} lowerIsBetter={false} />
@@ -238,7 +238,7 @@ export function AttackLab({
                 <th className="py-2 pr-3 font-medium">Scenario</th>
                 <th className="py-2 pr-3 font-medium">Category</th>
                 <th className="py-2 pr-3 font-medium">Without guard</th>
-                <th className="py-2 pr-3 font-medium">AgentGuard</th>
+                <th className="py-2 pr-3 font-medium">Callwrit</th>
                 <th className="py-2 pr-4 font-medium">Result</th>
               </tr>
             </thead>
@@ -302,7 +302,7 @@ export function AttackLab({
                                 </ul>
                               </div>
                               <div>
-                                <div className="mb-1 text-xs font-medium text-muted-foreground">Agent proposals under AgentGuard</div>
+                                <div className="mb-1 text-xs font-medium text-muted-foreground">Agent proposals under Callwrit</div>
                                 <ul className="space-y-1 text-xs">
                                   {agentRun.guarded.proposals.map((p, i) => (
                                     <li key={i} className="flex flex-wrap items-center gap-1.5">

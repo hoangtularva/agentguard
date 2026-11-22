@@ -1,11 +1,11 @@
-# @agentguard/sdk
+# @callwrit/sdk
 
-Guard the tool calls of **any** TypeScript/JavaScript agent with an AgentGuard server. Every call is checked before it runs: **ALLOW** (runs, with a signed single-use decision token), **REVIEW** (a human approves in the Approval Inbox) or **BLOCK** (never runs, with reasons). No runtime dependencies.
+Guard the tool calls of **any** TypeScript/JavaScript agent with an Callwrit server. Every call is checked before it runs: **ALLOW** (runs, with a signed single-use decision token), **REVIEW** (a human approves in the Approval Inbox) or **BLOCK** (never runs, with reasons). No runtime dependencies.
 
 ```ts
-import { AgentGuard, AgentGuardBlockedError, ApprovalRequiredError, guardTools } from "@agentguard/sdk";
+import { Callwrit, CallwritBlockedError, ApprovalRequiredError, guardTools } from "@callwrit/sdk";
 
-const ag = new AgentGuard({ baseUrl: "http://localhost:3000", apiKey: process.env.AGENTGUARD_KEY! });
+const ag = new Callwrit({ baseUrl: "http://localhost:3000", apiKey: process.env.CALLWRIT_KEY! });
 
 // One session per user task. The prompt is the trusted channel: recipients typed here are authorized.
 const session = await ag.startSession({
@@ -18,15 +18,15 @@ const session = await ag.startSession({
 
 const research = guardTools(session, { read_inbox: (args) => mail.list(args) });
 const write = guardTools(await session.handoff("writer", researcherNotes), {   // notes = untrusted provenance
-  send_email: (args, ctx) => mail.send(args, { agentguardToken: ctx.decisionToken }),
+  send_email: (args, ctx) => mail.send(args, { callwritToken: ctx.decisionToken }),
 });
 
 await research.read_inbox({ folder: "inbox" });               // output is registered as UNTRUSTED provenance
 try {
   await write.send_email({ to: "boss@corp.example", body });  // ALLOW, REVIEW or BLOCK
 } catch (e) {
-  if (e instanceof ApprovalRequiredError) notify(`Approve ${e.approvalId} in AgentGuard`);
-  else if (e instanceof AgentGuardBlockedError) console.warn(e.reasons);
+  if (e instanceof ApprovalRequiredError) notify(`Approve ${e.approvalId} in Callwrit`);
+  else if (e instanceof CallwritBlockedError) console.warn(e.reasons);
   else throw e;
 }
 ```
@@ -37,18 +37,18 @@ try {
 |---|---|
 | ALLOW | `fn(args, { decisionToken, callId })` runs; its output is reported (privacy mode: fingerprints only) |
 | REVIEW | throws `ApprovalRequiredError`, or with `{ waitForApproval: true }` polls, consumes the approval and runs once |
-| BLOCK | throws `AgentGuardBlockedError` with `reasons`; `fn` never runs |
-| AgentGuard unreachable / timeout (2 s) / 5xx / 429 | **fail closed**: throws `AgentGuardBlockedError` (`decision: "UNAVAILABLE"`). With `failMode: "allow-reads"`, guards marked `readOnly` may run; sinks never fail open |
+| BLOCK | throws `CallwritBlockedError` with `reasons`; `fn` never runs |
+| Callwrit unreachable / timeout (2 s) / 5xx / 429 | **fail closed**: throws `CallwritBlockedError` (`decision: "UNAVAILABLE"`). With `failMode: "allow-reads"`, guards marked `readOnly` may run; sinks never fail open |
 
 **Privacy mode (default on):** `session.addSource()` and tool outputs send only the emails/URLs found in the content plus locally detected injection signals, not the content itself. Tool **arguments** are sent as-is (they are what the policy decides on); the server stores content arguments only as hashes.
 
 **Tool-side verification:** pass `ctx.decisionToken` to the service that performs the side effect and verify it there. Then a call that bypassed the guard, or whose arguments changed after the decision, is refused by the tool itself:
 
 ```ts
-import { DecisionVerifier } from "@agentguard/sdk";
+import { DecisionVerifier } from "@callwrit/sdk";
 
 // online: server-side single use (key scope "verify"); offline: { key, appId } from `npm run admin -- token-key <app>`
-const verifier = new DecisionVerifier({ server: { baseUrl, apiKey: process.env.AGENTGUARD_VERIFY_KEY! } });
+const verifier = new DecisionVerifier({ server: { baseUrl, apiKey: process.env.CALLWRIT_VERIFY_KEY! } });
 export const POST = verifier.protect("send_email", async (req, args) => sendMail(args)); // 403 without a matching token
 ```
 

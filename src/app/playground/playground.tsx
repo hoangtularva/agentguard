@@ -418,7 +418,7 @@ export function Playground({ corpus, availability: initialAvailability }: { corp
       <div className="min-w-0 space-y-4">
         <Panel
           title="Execution trace"
-          description={result ? `${result.planner} · session ${result.sessionId.slice(0, 12)}… · ${(result.totalMs / 1000).toFixed(1)} s` : "Proposed tool calls and AgentGuard decisions, in order."}
+          description={result ? `${result.planner} · session ${result.sessionId.slice(0, 12)}… · ${(result.totalMs / 1000).toFixed(1)} s` : "Proposed tool calls and Callwrit decisions, in order."}
           actions={
             result && (
               <Link href={`/sessions/${result.sessionId}`} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">

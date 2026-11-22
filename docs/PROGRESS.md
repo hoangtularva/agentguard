@@ -1,6 +1,6 @@
 # Progress log (checkpoint for resuming)
 
-**Resume here (Phase 2, 2026-11-08):** repository at `D:\AI Master\agentguard`. Ollama portable in `D:\AI Master\_tools\ollama` (start: `ollama.exe serve` with `OLLAMA_MODELS=D:\AI Master\_tools\ollama-models`), model qwen2.5:3b pulled. All Phase 2 criteria verified (Docker stack included). See [PHASE2_PLAN.md](PHASE2_PLAN.md), [BLOCKERS.md](BLOCKERS.md).
+**Resume here (Phase 2, 2026-11-08):** repository at `D:\AI Master\callwrit`. Ollama portable in `D:\AI Master\_tools\ollama` (start: `ollama.exe serve` with `OLLAMA_MODELS=D:\AI Master\_tools\ollama-models`), model qwen2.5:3b pulled. All Phase 2 criteria verified (Docker stack included). See [PHASE2_PLAN.md](PHASE2_PLAN.md), [BLOCKERS.md](BLOCKERS.md).
 
 Quality gate commands (all run green at the last checkpoint):
 

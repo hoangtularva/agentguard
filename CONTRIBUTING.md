@@ -1,4 +1,4 @@
-# Contributing to AgentGuard
+# Contributing to Callwrit
 
 Thanks for your interest! Issues and pull requests are welcome.
 
@@ -6,7 +6,7 @@ Thanks for your interest! Issues and pull requests are welcome.
 
 ```bash
 git clone https://github.com/hoangtularva/agentguard.git
-cd agentguard
+cd callwrit
 npm install
 cp .env.example .env        # Windows: copy .env.example .env
 npm run dev                 # http://localhost:3000
@@ -38,6 +38,6 @@ Conventional-ish prefixes (`feat:`, `fix:`, `security:`, `bench:`, `docs:`), wit
 
 ## Licensing of contributions
 
-AgentGuard is dual-licensed by directory (see [LICENSING.md](LICENSING.md)): contributions to `packages/core`, `packages/sdk-ts` and `sdk/python` are made under the MIT License; all other contributions under the AGPL-3.0.
+Callwrit is dual-licensed by directory (see [LICENSING.md](LICENSING.md)): contributions to `packages/core`, `packages/sdk-ts` and `sdk/python` are made under the MIT License; all other contributions under the AGPL-3.0.
 
-The maintainer may also offer AgentGuard under commercial terms. So that this stays possible, by submitting a contribution you confirm that you wrote it (or have the right to submit it) and you grant the maintainer a perpetual, worldwide, irrevocable, royalty-free license to use, modify and relicense your contribution, including under other license terms. You keep your copyright. If you do not agree, please open an issue instead of a pull request.
+The maintainer may also offer Callwrit under commercial terms. So that this stays possible, by submitting a contribution you confirm that you wrote it (or have the right to submit it) and you grant the maintainer a perpetual, worldwide, irrevocable, royalty-free license to use, modify and relicense your contribution, including under other license terms. You keep your copyright. If you do not agree, please open an issue instead of a pull request.

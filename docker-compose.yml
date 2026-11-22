@@ -1,4 +1,4 @@
-# Local demo stack: PostgreSQL 16 + AgentGuard.
+# Local demo stack: PostgreSQL 16 + Callwrit.
 #   cp .env.example .env    # then set AUTH_SECRET (and optionally ANTHROPIC_API_KEY)
 #   docker compose up --build
 #   open http://localhost:3000
@@ -9,13 +9,13 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: agentguard
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-agentguard-local-only}
-      POSTGRES_DB: agentguard
+      POSTGRES_USER: callwrit
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-callwrit-local-only}
+      POSTGRES_DB: callwrit
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U agentguard -d agentguard"]
+      test: ["CMD-SHELL", "pg_isready -U callwrit -d callwrit"]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -27,17 +27,17 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgres://agentguard:${POSTGRES_PASSWORD:-agentguard-local-only}@db:5432/agentguard
+      DATABASE_URL: postgres://callwrit:${POSTGRES_PASSWORD:-callwrit-local-only}@db:5432/callwrit
       AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in .env (>=16 chars)}
       # DEMO ONLY: lets anyone who can reach the app pick any demo identity, including
       # approvers. Safe here only because the port is bound to 127.0.0.1 below.
-      AGENTGUARD_DEMO_AUTH: ${AGENTGUARD_DEMO_AUTH:-1}
+      CALLWRIT_DEMO_AUTH: ${CALLWRIT_DEMO_AUTH:-1}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      AGENTGUARD_LLM_MODEL: ${AGENTGUARD_LLM_MODEL:-claude-opus-5-5}
+      CALLWRIT_LLM_MODEL: ${CALLWRIT_LLM_MODEL:-claude-opus-5-5}
       # Ollama running on the host machine (optional; the app works without it)
       # Host Ollama by default; with --profile llm set OLLAMA_HOST_FROM_DOCKER=http://ollama:11434
       OLLAMA_HOST: ${OLLAMA_HOST_FROM_DOCKER:-http://host.docker.internal:11434}
-      AGENTGUARD_OLLAMA_MODEL: ${AGENTGUARD_OLLAMA_MODEL:-qwen2.5:3b}
+      CALLWRIT_OLLAMA_MODEL: ${CALLWRIT_OLLAMA_MODEL:-qwen2.5:3b}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:

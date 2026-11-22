@@ -23,7 +23,7 @@ What is enforced, where, and by what mechanism. "Hard" means no policy edit can 
 ## Enforced at the API boundary
 
 - Every route parses its body with Zod. Unknown enums and oversized strings are rejected (400).
-- Identity comes from an HMAC-SHA256-signed cookie, compared in constant time. The request body never names the acting user. **No implicit identity** (Phase 3): requests without a valid cookie get 401. Demo sign-in only works when `AGENTGUARD_DEMO_AUTH` is enabled.
+- Identity comes from an HMAC-SHA256-signed cookie, compared in constant time. The request body never names the acting user. **No implicit identity** (Phase 3): requests without a valid cookie get 401. Demo sign-in only works when `CALLWRIT_DEMO_AUTH` is enabled.
 - **Viewer-scoped reads** (Phase 3): members can read only their own sessions, approvals and audit events; approvers/admins read all. Unknown and foreign session ids both return 404.
 - Request bodies are capped at 64 KB (413). Benchmarks are restricted to approvers/admins. A Content-Security-Policy is sent.
 - State-changing routes reject cross-origin requests (`Origin` ≠ `Host` → 403). The cookie is `HttpOnly` and `SameSite=Lax`.

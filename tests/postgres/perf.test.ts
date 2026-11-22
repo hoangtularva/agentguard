@@ -15,11 +15,11 @@ let q: Q;
 let db: Awaited<ReturnType<typeof import("@/server/db/client").getDb>>;
 
 beforeAll(async () => {
-  pg = new EmbeddedPostgres({ databaseDir: path.resolve(`.data/pg-perf-${Date.now()}`), user: "agentguard", password: "local-test-only", port: PORT, persistent: false, onLog: () => {} });
+  pg = new EmbeddedPostgres({ databaseDir: path.resolve(`.data/pg-perf-${Date.now()}`), user: "callwrit", password: "local-test-only", port: PORT, persistent: false, onLog: () => {} });
   await pg.initialise();
   await pg.start();
   await pg.createDatabase("perf");
-  process.env.DATABASE_URL = `postgres://agentguard:local-test-only@127.0.0.1:${PORT}/perf`;
+  process.env.DATABASE_URL = `postgres://callwrit:local-test-only@127.0.0.1:${PORT}/perf`;
   const client = await import("@/server/db/client");
   db = await client.getDb();
   q = await import("@/server/queries");

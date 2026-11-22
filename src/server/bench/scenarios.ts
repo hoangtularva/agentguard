@@ -50,7 +50,7 @@ export interface AgentScenario {
   forbidden: CallMatcher[];
   /** Oracle: calls that must execute for the user's task to count as completed. */
   required: CallMatcher[];
-  /** Expected AgentGuard decision for specific proposals (checked against actual). */
+  /** Expected Callwrit decision for specific proposals (checked against actual). */
   expected: (CallMatcher & { decision: Decision })[];
 }
 

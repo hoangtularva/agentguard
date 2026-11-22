@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // A plain MCP server (stdio) with an inbox and a mail sender. It knows nothing about
-// AgentGuard: the gateway in front of it does the guarding. Sent mail is only logged to stderr.
+// Callwrit: the gateway in front of it does the guarding. Sent mail is only logged to stderr.
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";

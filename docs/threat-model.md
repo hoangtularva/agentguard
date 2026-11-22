@@ -104,7 +104,7 @@ Full details, reproductions and test names: [PHASE3_FINDINGS.md](PHASE3_FINDINGS
 | ID | Threat | Status |
 |---|---|---|
 | T28 | Implicit default identity: unauthenticated requests acted as a member | **Fixed (F1)**: no identity without a signed cookie; 401 / sign-in screen |
-| T29 | Demo identity switch = authentication bypass to approver/admin | **Mitigated (F3)**: gated by `AGENTGUARD_DEMO_AUTH` (off in production by default); still *by design* not authentication |
+| T29 | Demo identity switch = authentication bypass to approver/admin | **Mitigated (F3)**: gated by `CALLWRIT_DEMO_AUTH` (off in production by default); still *by design* not authentication |
 | T30 | IDOR on read models (approvals with exact args, sessions, events) | **Fixed (F4)**: viewer-scoped queries; foreign sessions 404 |
 | T31 | Request-body exhaustion | **Fixed (F5)**: 64 KB streamed cap → 413 |
 | T32 | Script injection / clickjacking defense in depth | **Partly fixed (F6)**: CSP (`frame-ancestors 'none'`, `object-src 'none'`); `'unsafe-inline'` scripts remain |
@@ -126,10 +126,10 @@ New assets: API keys, decision tokens, per-app tool specs, external sessions' pr
 | T41 | API key theft | **Reduced**: SHA-256 at rest, shown once, scopes, agent binding, revocation (UI/CLI), per-key rate limit (429 + Retry-After), never echoed in errors. Residual: a stolen `check` key can open sessions with any prompt (see T42) |
 | T42 | **Compromised app backend lies about the user's prompt/mandate** | **Residual by design**: the holder of a `check` key is trusted to report the user's request. Open sessions from your backend, never from model output; bind keys to agents; keep the model away from the key |
 | T43 | Approval double-consume under concurrency | **Mitigated**: row lock + conditional claim; 10 concurrent consumes → 1 token (real PG16 test) |
-| T44 | AgentGuard unavailable → silent fail-open | **Mitigated**: SDKs/gateway fail closed; `allow-reads` opt-in applies to read-only guards only |
+| T44 | Callwrit unavailable → silent fail-open | **Mitigated**: SDKs/gateway fail closed; `allow-reads` opt-in applies to read-only guards only |
 | T45 | Third-party content leaves the host app | **Reduced**: privacy mode sends email/URL fingerprints + local signals; content arguments hashed in audit. Residual: tool arguments are sent in full |
 | T46 | Malicious MCP config (SSRF via upstream URL) | **Out of API reach**: upstream is set only in the operator's config file; the model can't change it or the mandate |
-| T47 | Sub-agent laundering of untrusted content | **Reduced**: participant agents share the session's provenance; non-participants fail identity checks. Residual: content routed outside AgentGuard and re-entered unregistered |
+| T47 | Sub-agent laundering of untrusted content | **Reduced**: participant agents share the session's provenance; non-participants fail identity checks. Residual: content routed outside Callwrit and re-entered unregistered |
 | T48 | Silent edit/deletion of audit history by someone with database access | **Mitigated for sealed events (O1)**: hash chain detects edits, deletions, reordering and re-hashing of a single event; tests on PGlite and concurrent sealers on PG16. Residual: pre-seal window, tail truncation without an external anchor, an attacker who rewrites the whole chain |
 | T49 | A hijacked or looping agent keeps acting | **Mitigated (O8)**: kill switch (freeze an agent in *Apps & API keys*: every check it makes is BLOCKed) and a per-app session budget of outbound actions (`BUDGET_EXCEEDED`, `npm run admin -- budget <app> <n>`) |
 | T50 | Webhooks used for SSRF or data leakage | **Designed out (O13)**: off by default; URL set only by the operator (CLI), never via the API; payload has ids + tool name only; HMAC-signed with a timestamp; no redirects followed |

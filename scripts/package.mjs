@@ -1,6 +1,6 @@
 // Build and pack the distributable artifacts into dist-packages/ (npm run package).
-//   @agentguard/core, @agentguard/sdk, @agentguard/mcp-gateway  → .tgz (npm pack)
-//   agentguard-sdk (Python)                                     → .whl (pip wheel, no runtime deps)
+//   @callwrit/core, @callwrit/sdk, @callwrit/mcp-gateway  → .tgz (npm pack)
+//   callwrit (Python)                                     → .whl (pip wheel, no runtime deps)
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
