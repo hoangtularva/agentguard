@@ -2,7 +2,18 @@
 
 Goal: a global developer can **find, install, trust and use** AgentGuard, then learn whether anyone would pay for something. Constraint: one maintainer, under 5 hours a week. Each block below is about 2 weeks at that pace.
 
-**Done so far:** security core, `/v1`, SDKs, MCP gateway, verifiers, audit chain, F1 fix, AGPL-3.0 (server) + MIT (SDKs/core) licensing.
+**Done so far:** security core, `/v1`, SDKs, MCP gateway, verifiers, audit chain, F1 fix, AGPL-3.0 (server) + MIT (SDKs/core) licensing, dependency refresh (Next 16.4.6, GitHub Actions on Node 24, Python SDK ≥ 3.10), README with uniform screenshots.
+
+## Resume here
+
+State on 2026-11-22: `main` is green locally (121 Vitest, 14 PostgreSQL 16, 22 Playwright on Docker). Commit messages are one line, author Hoang Tu only.
+
+1. **Start Block 1, task 1:** research 5 candidate names and check npm, PyPI, GitHub, domains and trademark databases; the owner picks one.
+2. Deferred dependency majors, revisit monthly: ESLint 10 (waits for `eslint-config-next` plugins: import, jsx-a11y, react), TypeScript 7 (waits for `typescript-eslint` and Next.js support of the new compiler API), `embedded-postgres` 17+ (move tests and `docker-compose` PostgreSQL together, never one alone).
+3. Local cleanup when satisfied with the history rewrite: `git branch -D backup/before-rewrite`.
+4. Optional: analyse llama3.2:3b false positives (`docs/benchmark-llm-models.md`).
+
+Working rules: never push without tests passing by exit code; one-line commit messages without attribution; ask before outward-facing actions (publishing packages, posting, renaming the GitHub repo).
 
 ## Block 1: Ready for a public name (weeks 1–2)
 
