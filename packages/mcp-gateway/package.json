@@ -2,7 +2,7 @@
   "name": "@agentguard/mcp-gateway",
   "version": "0.1.0",
   "description": "MCP proxy that checks every tools/call with AgentGuard before it reaches the upstream MCP server.",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "bin": { "agentguard-mcp": "./dist/cli.js" },
   "main": "./dist/gateway.js",

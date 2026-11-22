@@ -6,7 +6,7 @@
 Every action an agent proposes is checked *before* it runs: **ALLOW**, **REVIEW** (human approval) or **BLOCK**, with reasons, a policy version and an audit trail.
 
 [![CI](https://github.com/hoangtularva/agentguard/actions/workflows/ci.yml/badge.svg)](https://github.com/hoangtularva/agentguard/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License: AGPL-3.0 + MIT SDKs](https://img.shields.io/badge/license-AGPL--3.0%20%7C%20SDKs%20MIT-blue.svg)](LICENSING.md)
 ![Next.js 16](https://img.shields.io/badge/Next.js-16-black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)
 ![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-336791)
@@ -191,4 +191,4 @@ Issues and PRs are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md). Good first a
 
 ## License
 
-[MIT](LICENSE) © 2026 Hoang Tu
+Server, UI and MCP gateway: [AGPL-3.0](LICENSE). SDKs, verifiers and the core library: MIT, so you can integrate AgentGuard into any application. Details: [LICENSING.md](LICENSING.md). © 2026 Hoang Tu
