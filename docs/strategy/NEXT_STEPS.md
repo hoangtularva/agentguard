@@ -8,7 +8,7 @@ Goal: a global developer can **find, install, trust and use** Callwrit, then lea
 
 State on 2026-11-22: `main` is green locally (121 Vitest, 14 PostgreSQL 16, 22 Playwright on Docker). Commit messages are one line, author Hoang Tu only.
 
-1. **Block 1, task 2:** name chosen: **Callwrit** ([NAME_SHORTLIST.md](NAME_SHORTLIST.md)). Repository code, packages (`@callwrit/*`, PyPI `callwrit`), env vars (`CALLWRIT_*`), headers (`X-Callwrit-*`) and docs renamed. Left: owner runs one WIPO/USPTO search; with owner approval rename the GitHub repo to `callwrit` and set description, topics, homepage; then update the `github.com/.../agentguard` URLs.
+1. **Block 1, task 2:** name chosen: **Callwrit** ([NAME_SHORTLIST.md](NAME_SHORTLIST.md)). Repository code, packages (`@callwrit/*`, PyPI `callwrit`), env vars (`CALLWRIT_*`), headers (`X-Callwrit-*`) and docs renamed. GitHub repo renamed to `hoangtularva/callwrit` with description and topics (no homepage yet). Left: owner runs one WIPO/USPTO search; retake README screenshots (UI still shows the old name); then task 3.
 2. Deferred dependency majors, revisit monthly: ESLint 10 (waits for `eslint-config-next` plugins: import, jsx-a11y, react), TypeScript 7 (waits for `typescript-eslint` and Next.js support of the new compiler API), `embedded-postgres` 17+ (move tests and `docker-compose` PostgreSQL together, never one alone).
 3. Local cleanup when satisfied with the history rewrite: `git branch -D backup/before-rewrite`.
 4. Optional: analyse llama3.2:3b false positives (`docs/benchmark-llm-models.md`).

@@ -8,8 +8,8 @@
 
 Every action an agent proposes is checked *before* it runs: **ALLOW**, **REVIEW** (a human approves the exact action) or **BLOCK**, with reasons, a policy version and a tamper-evident audit trail.
 
-[![CI](https://github.com/hoangtularva/agentguard/actions/workflows/ci.yml/badge.svg)](https://github.com/hoangtularva/agentguard/actions/workflows/ci.yml)
-[![Security](https://github.com/hoangtularva/agentguard/actions/workflows/security.yml/badge.svg)](https://github.com/hoangtularva/agentguard/actions/workflows/security.yml)
+[![CI](https://github.com/hoangtularva/callwrit/actions/workflows/ci.yml/badge.svg)](https://github.com/hoangtularva/callwrit/actions/workflows/ci.yml)
+[![Security](https://github.com/hoangtularva/callwrit/actions/workflows/security.yml/badge.svg)](https://github.com/hoangtularva/callwrit/actions/workflows/security.yml)
 [![License: AGPL-3.0 · SDKs MIT](https://img.shields.io/badge/license-AGPL--3.0%20%C2%B7%20SDKs%20MIT-blue.svg)](LICENSING.md)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)
 ![Python SDK](https://img.shields.io/badge/Python-3.10%2B-3776ab)
@@ -71,7 +71,7 @@ Full guide with the safety checklist: **[docs/INTEGRATION_GUIDE.md](docs/INTEGRA
 Node 22+, no database server needed (embedded PostgreSQL via PGlite):
 
 ```bash
-git clone https://github.com/hoangtularva/agentguard.git
+git clone https://github.com/hoangtularva/callwrit.git
 cd callwrit
 npm install
 cp .env.example .env

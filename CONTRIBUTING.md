@@ -5,7 +5,7 @@ Thanks for your interest! Issues and pull requests are welcome.
 ## Development setup
 
 ```bash
-git clone https://github.com/hoangtularva/agentguard.git
+git clone https://github.com/hoangtularva/callwrit.git
 cd callwrit
 npm install
 cp .env.example .env        # Windows: copy .env.example .env
