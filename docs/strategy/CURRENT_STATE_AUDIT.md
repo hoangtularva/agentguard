@@ -33,7 +33,7 @@ Legend: **A** implemented and tested · **B** implemented, insufficiently tested
 |---|---|---|
 | `/v1` decision API (sessions, sources, check, approvals + consume, results, token verify, tools, agents, keys, health, OpenAPI) | **A** | `src/app/v1/**`, `src/server/integration/service.ts` · `v1-api.test.ts`, `v1-security.test.ts`; OpenAPI drift test |
 | API keys (SHA-256 at rest, scopes, revocation, rate limit 50 rps/key) | **A** | `integration/apps.ts`, `integration/http.ts` · v1 tests |
-| Agent-bound keys | **C** | enforced only in `openSession` and `check` (`service.ts#actingAgent`); **not** in `consume`, `getApproval`, `reportResult`, `addSource`. See finding F1 |
+| Agent-bound keys | **A** (since F1 fix) | `service.ts#actingAgent`, `#boundTo`, `addSource` participant check, `verifyToken` WRONG_AGENT, `http.ts` admin refusal · `v1-security.test.ts` (fails without the fix) |
 | Multi-tenancy (`app_id` scoping, foreign ids → 404) | **A** | migrations 0001–0004 · `tenancy.test.ts`, `v1-security.test.ts`, `migrations.test.ts` (upgrade from 0000) |
 | Multi-agent sessions, hand-off provenance, `parentCallId` | **A** | `session.ts`, `service.ts#check` · `v1-api.test.ts`, examples |
 | TypeScript SDK (zero deps, fail closed, privacy mode, `guard`, `handoff`) | **A** | `packages/sdk-ts` · `sdk-ts.test.ts` over HTTP; tarball install-tested |
@@ -67,14 +67,14 @@ Legend: **A** implemented and tested · **B** implemented, insufficiently tested
 
 | ID | Severity | Finding | Evidence | Recommended mitigation (not applied) |
 |---|---|---|---|---|
-| F1 | **Medium** | An agent-bound API key is only constrained on `/v1/sessions` and `/v1/check`. With such a key, a caller can read or **consume** approvals for calls made by *other* agents of the same app, report their results, and register sources in sessions it does not take part in. Cross-app access is still impossible | `service.ts`: `getApproval`, `consume`, `reportResult`, `addSource` check only `principal.app.id` | When `principal.agentId` is set, require `tool_calls.agent_id === principal.agentId` for approvals/results and session participation for sources; add regression tests to `v1-security.test.ts` |
+| F1 | ~~Medium~~ **Fixed** | An agent-bound API key is only constrained on `/v1/sessions` and `/v1/check`. With such a key, a caller can read or **consume** approvals for calls made by *other* agents of the same app, report their results, and register sources in sessions it does not take part in. Cross-app access is still impossible | `service.ts`: `getApproval`, `consume`, `reportResult`, `addSource` check only `principal.app.id` | **Fixed** (see below): bound keys get 404 for other agents' approvals/calls, must be a session participant to add sources, get `WRONG_AGENT` (no consumption) for other agents' tokens, and can never hold or use the `admin` scope; `relatedCallId` must belong to the session. Regression test fails on the old code |
 | F2 | Medium (by design) | The holder of a `check` key is trusted to state the user's prompt and mandate (T42) | `openSession` | Documented. Product mitigation: open sessions server-side, bind keys, consider signed user intents from the host's auth layer |
 | F3 | Medium (deployment) | Demo identities default **on** in `docker-compose.yml` and `docker-compose.sidecar.yml`; anyone reaching the UI port can act as an approver | compose files, `identity.ts` | Ports are bound to 127.0.0.1; for any shared deployment default it off and document a reverse-proxy SSO pattern until OIDC exists |
 | F4 | Low | `GET /v1/keys/:appId` is unauthenticated, so app ids can be enumerated (200 vs 404). The key itself is public by design | `src/app/v1/keys/[appId]/route.ts` | Accept; or return the same shape for unknown ids |
 | F5 | Low | Rate limiting, token replay cache (offline verifier) and catalog caches are per process | `integration/http.ts`, `verify.ts`, `catalog.ts` | Fine for single instance; document before any multi-instance deployment |
 | F6 | Low | No way to rotate one app's token key (`token_key_version` never changes) | `apps.ts` | Add `admin rotate-token-key <app>` that increments the version |
 
-No critical issue was found. F1 is the only finding that weakens a documented guarantee (agent binding).
+No critical issue was found. F1 was the only finding that weakened a documented guarantee (agent binding); it is fixed and covered by a regression test. While fixing it, two related gaps were closed: an agent-bound `verify` key could consume another agent's token, and a bound key with the `admin` scope could re-configure other agents.
 
 ## 3. Architecture assessment
 

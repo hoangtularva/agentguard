@@ -84,6 +84,15 @@ function actingAgent(principal: ApiPrincipal, agentRef: string): string {
   return id;
 }
 
+/**
+ * Agent-bound keys (audit finding F1): every operation on an existing session, call or approval
+ * must stay within that agent's own work. Anything else answers 404, like an unknown id, so a
+ * bound key learns nothing about other agents' activity.
+ */
+function boundTo(principal: ApiPrincipal, agentId: string, what: string, code: string) {
+  if (principal.agentId && principal.agentId !== agentId) throw new ApiError(404, code, `${what} not found.`);
+}
+
 /** External end users are identified by the app; AgentGuard keeps a pseudonymous row per (app, user). */
 async function externalUser(db: DB, appId: string, userRef: string): Promise<string> {
   const h = sha256(`${appId}\u0000${userRef}`).slice(0, 24);
@@ -187,6 +196,24 @@ export const AddSourceBody = z
 
 export async function addSource(db: DB, principal: ApiPrincipal, sessionId: string, body: z.infer<typeof AddSourceBody>) {
   await loadSession(db, principal.app.id, sessionId);
+  if (principal.agentId) {
+    // A bound key may only add context to sessions its agent takes part in.
+    const [row] = await db
+      .select({ agentId: s.agentSessions.agentId, agentIds: s.agentSessions.agentIds })
+      .from(s.agentSessions)
+      .where(eq(s.agentSessions.id, sessionId))
+      .limit(1);
+    if (row.agentId !== principal.agentId && !row.agentIds.includes(principal.agentId))
+      throw new ApiError(404, "session_not_found", "Session not found.");
+  }
+  if (body.relatedCallId) {
+    const [rel] = await db
+      .select({ id: s.toolCalls.id })
+      .from(s.toolCalls)
+      .where(and(eq(s.toolCalls.id, body.relatedCallId), eq(s.toolCalls.sessionId, sessionId)))
+      .limit(1);
+    if (!rel) throw new ApiError(400, "invalid_related_call", "relatedCallId must be a call of this session.");
+  }
   return insertSource(db, sessionId, body);
 }
 
@@ -268,18 +295,20 @@ export async function check(db: DB, principal: ApiPrincipal, body: z.infer<typeo
   };
 }
 
-async function ownedApproval(db: DB, appId: string, approvalId: string) {
-  const [apr] = await db
-    .select()
+async function ownedApproval(db: DB, principal: ApiPrincipal, approvalId: string) {
+  const [row] = await db
+    .select({ apr: s.approvals, agentId: s.toolCalls.agentId })
     .from(s.approvals)
-    .where(and(eq(s.approvals.id, approvalId), eq(s.approvals.appId, appId)))
+    .innerJoin(s.toolCalls, eq(s.toolCalls.id, s.approvals.toolCallId))
+    .where(and(eq(s.approvals.id, approvalId), eq(s.approvals.appId, principal.app.id)))
     .limit(1);
-  if (!apr) throw new ApiError(404, "approval_not_found", "Approval not found.");
-  return apr;
+  if (!row) throw new ApiError(404, "approval_not_found", "Approval not found.");
+  boundTo(principal, row.agentId, "Approval", "approval_not_found");
+  return row.apr;
 }
 
 export async function getApproval(db: DB, principal: ApiPrincipal, approvalId: string) {
-  const apr = await ownedApproval(db, principal.app.id, approvalId);
+  const apr = await ownedApproval(db, principal, approvalId);
   const expired = (apr.status === "pending" || apr.status === "approved") && Date.now() > apr.expiresAt.getTime();
   return {
     approvalId: apr.id,
@@ -292,7 +321,7 @@ export async function getApproval(db: DB, principal: ApiPrincipal, approvalId: s
 }
 
 export async function consume(db: DB, principal: ApiPrincipal, approvalId: string) {
-  await ownedApproval(db, principal.app.id, approvalId);
+  await ownedApproval(db, principal, approvalId);
   const r = await consumeApproved(await depsFor(db, principal), {
     approvalId,
     actorId: `app:${principal.keyId}`,
@@ -319,6 +348,7 @@ export async function reportResult(db: DB, principal: ApiPrincipal, callId: stri
     .where(and(eq(s.toolCalls.id, callId), eq(s.toolCalls.appId, principal.app.id)))
     .limit(1);
   if (!tc) throw new ApiError(404, "call_not_found", "Tool call not found.");
+  boundTo(principal, tc.agentId, "Tool call", "call_not_found");
   if (tc.status !== "allowed") throw new ApiError(409, "not_reportable", `Call is ${tc.status}; only allowed calls take a result.`);
   const summary = body.summary ?? {};
   try {
@@ -374,6 +404,9 @@ export async function verifyToken(db: DB, principal: ApiPrincipal, body: z.infer
   });
   let result: { valid: boolean; code?: string; message?: string; callId?: string };
   if (!v.ok) result = { valid: false, code: v.code, message: v.message };
+  // A bound key may only verify (and so consume) its own agent's tokens.
+  else if (principal.agentId && v.payload.agent !== principal.agentId)
+    result = { valid: false, code: "WRONG_AGENT", message: "Token was issued to another agent." };
   else if (!body.consume) result = { valid: true, callId: v.payload.call };
   else {
     const used = await db
