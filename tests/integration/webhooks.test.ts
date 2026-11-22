@@ -46,15 +46,18 @@ describe("approval webhooks", () => {
 
     await db.update(s.apps).set({ settings: { webhookUrl: url } }).where(eq(s.apps.id, "hooked"));
     const configured = { ...p, app: { ...app, settings: { webhookUrl: url } } };
-    const { sessionId } = await v1.openSession(db, configured, { userRef: "u", agentId: "bot", agents: [], prompt: "pay acct-7", mandate: { tools: ["wire"], resources: [], destinations: ["acct-7"] } });
-    const r = await v1.check(db, configured, { sessionId, agentId: "bot", tool: "wire", args: { account: "acct-7", amount: 990 } });
+    const { sessionId } = await v1.openSession(db, configured, { userRef: "u", agentId: "bot", agents: [], prompt: "pay acct-secret-payee", mandate: { tools: ["wire"], resources: [], destinations: ["acct-secret-payee"] } });
+    const r = await v1.check(db, configured, { sessionId, agentId: "bot", tool: "wire", args: { account: "acct-secret-payee", amount: 424242.4242 } });
     expect(r.decision).toBe("REVIEW");
     for (let i = 0; i < 50 && received.length === 0; i++) await new Promise((res) => setTimeout(res, 50));
     expect(received).toHaveLength(1);
     const { headers, body } = received[0];
-    expect(JSON.parse(body)).toMatchObject({ type: "approval.requested", app: "hooked", approvalId: r.approvalId, callId: r.callId, tool: "wire" });
-    expect(body).not.toContain("acct-7");
-    expect(body).not.toContain("990");
+    const payload = JSON.parse(body);
+    expect(payload).toMatchObject({ type: "approval.requested", app: "hooked", approvalId: r.approvalId, callId: r.callId, tool: "wire" });
+    // Exactly these fields, and none of the call's arguments (distinctive values, so no chance match with ids or times).
+    expect(Object.keys(payload).sort()).toEqual(["app", "approvalId", "callId", "expiresAt", "sentAt", "status", "tool", "type"]);
+    expect(body).not.toContain("acct-secret-payee");
+    expect(body).not.toContain("424242");
     expect(headers["x-agentguard-signature"]).toBe(signWebhook("hooked", String(headers["x-agentguard-timestamp"]), body));
     expect(signWebhook("other-app", String(headers["x-agentguard-timestamp"]), body)).not.toBe(headers["x-agentguard-signature"]);
   });
