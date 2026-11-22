@@ -5,6 +5,8 @@ import { POST as resultRoute } from "@/app/v1/calls/[id]/result/route";
 import { POST as checkRoute } from "@/app/v1/check/route";
 import { POST as sourcesRoute } from "@/app/v1/sessions/[id]/sources/route";
 import { POST as sessionsRoute } from "@/app/v1/sessions/route";
+import { POST as verifyRoute } from "@/app/v1/tokens/verify/route";
+import { PUT as putToolRoute } from "@/app/v1/tools/[name]/route";
 import { DEFAULT_CORPUS } from "@/server/core/fixtures";
 import { type DB, getDb } from "@/server/db/client";
 import { decideApproval } from "@/server/enforcement/approvals";
@@ -131,5 +133,63 @@ describe("containment (O8)", () => {
     const frozen = json(await call(checkRoute, key, { sessionId: ses.sessionId, agentId: "bot", tool: "notify", args: { to: "ops@capped.test" } }));
     expect(frozen.decision).toBe("BLOCK");
     expect(frozen.reasons[0].code).toBe("IDENTITY_UNVERIFIED");
+  });
+});
+
+describe("agent-bound keys stay within their agent's work (audit F1)", () => {
+  it("another agent's bound key cannot read, consume, report, add context or burn tokens; the owner still can", async () => {
+    const { sha256 } = await import("@/server/core/canonical");
+    const s = await import("@/server/db/schema");
+    const app = await createApp(db, { id: "bound", name: "bound", createdBy: "u_bob" });
+    const admin = { keyId: "setup", app, agentId: null, scopes: ["admin" as const] };
+    await v1.putTool(db, admin, "lookup", { name: "lookup", kind: "source", risk: "low", inputSchema: { type: "object", properties: { q: { type: "string" } }, required: ["q"] } });
+    await v1.putTool(db, admin, "post", {
+      name: "post",
+      kind: "sink",
+      risk: "high",
+      destinationArg: "channel",
+      inputSchema: { type: "object", properties: { channel: { type: "string" }, text: { type: "string" } }, required: ["channel", "text"] },
+    });
+    for (const a of ["alpha", "beta"]) await v1.putAgent(db, admin, a, { name: a, allowedTools: ["lookup", "post"], active: true });
+    const key = async (scopes: ("check" | "verify")[], agentRef?: string) =>
+      (await createApiKey(db, { appId: "bound", name: `${agentRef ?? "app"}-${scopes[0]}`, scopes, agentRef, createdBy: "u_bob" })).key;
+    const [alpha, beta, alphaVerify, betaVerify] = [await key(["check"], "alpha"), await key(["check"], "beta"), await key(["verify"], "alpha"), await key(["verify"], "beta")];
+
+    // alpha works alone in its session: a read (token) and a high-risk post (approval).
+    const ses = json(await call(sessionsRoute, alpha, { userRef: "u", agentId: "alpha", prompt: "post a summary to #team", mandate: { tools: ["lookup", "post"], destinations: ["#team"] } }));
+    const read = json(await call(checkRoute, alpha, { sessionId: ses.sessionId, agentId: "alpha", tool: "lookup", args: { q: "x" } }));
+    const post = json(await call(checkRoute, alpha, { sessionId: ses.sessionId, agentId: "alpha", tool: "post", args: { channel: "#team", text: "hi" } }));
+    expect([read.decision, post.decision]).toEqual(["ALLOW", "REVIEW"]);
+    await decideApproval(db, { approvalId: post.approvalId, actorId: "u_bob", decision: "approve" });
+
+    // beta's key: everything about alpha's work looks like it does not exist.
+    expect((await call(getApproval as H, beta, undefined, { id: post.approvalId }, "GET")).status).toBe(404);
+    expect((await call(consumeRoute, beta, undefined, { id: post.approvalId })).status).toBe(404);
+    expect((await call(resultRoute, beta, { ok: true, output: "spoofed" }, { id: read.callId })).status).toBe(404);
+    expect((await call(sourcesRoute, beta, { type: "web", label: "x", fingerprints: ["evil@x.test"] }, { id: ses.sessionId })).status).toBe(404);
+    expect((await call(checkRoute, beta, { sessionId: ses.sessionId, agentId: "alpha", tool: "lookup", args: { q: "x" } })).status).toBe(403);
+    const burn = json(await call(verifyRoute, betaVerify, { token: read.decisionToken, tool: "lookup", args: { q: "x" } }));
+    expect(burn).toMatchObject({ valid: false, code: "WRONG_AGENT" });
+
+    // ...and none of that consumed or changed anything: alpha's own keys still work.
+    expect(json(await call(verifyRoute, alphaVerify, { token: read.decisionToken, tool: "lookup", args: { q: "x" } }))).toMatchObject({ valid: true });
+    expect((await call(resultRoute, alpha, { ok: true }, { id: read.callId })).status).toBe(200);
+    expect(json(await call(getApproval as H, alpha, undefined, { id: post.approvalId }, "GET")).status).toBe("approved");
+    const consumed = await call(consumeRoute, alpha, undefined, { id: post.approvalId });
+    expect(consumed.status).toBe(200);
+    expect(json(consumed).decisionToken).toMatch(/^agt[12]\./);
+
+    // A session that names beta as a participant does accept beta's context.
+    const shared = json(await call(sessionsRoute, alpha, { userRef: "u", agentId: "alpha", agents: ["beta"], prompt: "work together", mandate: { tools: ["lookup"] } }));
+    expect((await call(sourcesRoute, beta, { type: "agent_message", label: "beta → alpha", content: "notes" }, { id: shared.sessionId })).status).toBe(201);
+    // relatedCallId must belong to the session.
+    expect((await call(sourcesRoute, alpha, { type: "tool_output", label: "x", content: "y", relatedCallId: read.callId }, { id: shared.sessionId })).status).toBe(400);
+
+    // Bound keys never administer the app: refused at creation, and refused at use for older keys.
+    await expect(createApiKey(db, { appId: "bound", name: "bad", scopes: ["admin"], agentRef: "alpha", createdBy: "u_bob" })).rejects.toThrow(/admin/);
+    const legacy = "agk_legacyBoundAdminKey000000000000";
+    await db.insert(s.apiKeys).values({ id: "key_legacy", appId: "bound", agentId: "bound.alpha", name: "legacy", keyHash: sha256(legacy), prefix: legacy.slice(0, 12), scopes: ["admin"] });
+    const tool = { name: "lookup", kind: "source", risk: "low", inputSchema: { type: "object", properties: { q: { type: "string" } } } };
+    expect((await call(putToolRoute, legacy, tool, { name: "lookup" }, "PUT")).status).toBe(403);
   });
 });

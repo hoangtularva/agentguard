@@ -58,6 +58,8 @@ export async function createApiKey(
   p: { appId: string; name: string; scopes: ApiScope[]; agentRef?: string; createdBy: string },
 ): Promise<{ id: string; key: string; prefix: string }> {
   if (p.appId === "demo") throw new Error("The built-in demo app has no API keys; create an app first.");
+  // An agent-bound key acts for one agent; app-wide administration contradicts that binding.
+  if (p.agentRef && p.scopes.includes("admin")) throw new Error("Agent-bound keys cannot have the admin scope.");
   const key = `agk_${randomBytes(24).toString("base64url")}`;
   const id = newId("key");
   const prefix = key.slice(0, 12);

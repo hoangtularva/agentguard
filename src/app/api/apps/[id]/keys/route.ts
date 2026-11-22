@@ -26,6 +26,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const db = await getDb();
   const [app] = await db.select().from(s.apps).where(eq(s.apps.id, id));
   if (!app || app.id === "demo") return json({ error: "not_found" }, 404);
-  const k = await createApiKey(db, { appId: id, ...body.data, createdBy: auth.user.id });
-  return json(k, 201);
+  try {
+    const k = await createApiKey(db, { appId: id, ...body.data, createdBy: auth.user.id });
+    return json(k, 201);
+  } catch (e) {
+    return json({ error: "invalid_key_request", message: (e as Error).message }, 400);
+  }
 }

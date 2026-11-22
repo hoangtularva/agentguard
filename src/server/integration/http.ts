@@ -37,6 +37,8 @@ export function v1(scope: ApiScope, handler: (ctx: Ctx) => Promise<unknown>) {
       const principal = await authenticateApiKey(db, req.headers.get("authorization"));
       if (!principal) return json({ error: "unauthenticated", message: "Send a valid API key: Authorization: Bearer agk_…" }, 401);
       if (!principal.scopes.includes(scope)) return json({ error: "forbidden", message: `This key lacks the "${scope}" scope.` }, 403);
+      // Defence in depth for keys created before this rule: bound keys never administer the app.
+      if (scope === "admin" && principal.agentId) return json({ error: "forbidden", message: "Agent-bound keys cannot administer the app." }, 403);
       if (!take(principal.keyId)) {
         const res = json({ error: "rate_limited", message: `Limit: ${rate()} requests/s per key.` }, 429);
         res.headers.set("retry-after", "1");
