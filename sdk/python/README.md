@@ -1,6 +1,6 @@
 # agentguard-sdk (Python)
 
-Guard the tool calls of **any** Python agent (plain functions, LangChain/LangGraph tools, CrewAI, AutoGen, your own loop) with an AgentGuard server. Zero dependencies, Python ≥ 3.9.
+Guard the tool calls of **any** Python agent (plain functions, LangChain/LangGraph tools, CrewAI, AutoGen, your own loop) with an AgentGuard server. Zero dependencies, Python ≥ 3.10.
 
 ```python
 from agentguard import AgentGuard, AgentGuardBlocked, ApprovalRequired
