@@ -3,6 +3,7 @@
  *   npm run dev            (or the Docker stack)
  *   npx tsx scripts/screenshots.ts [baseURL]        (ONLY=name1,name2 to retake some)
  * Writes docs/screenshots/*.png. Uses the deterministic simulated agent so images are stable.
+ * Desktop shots are exactly one 1440×900 viewport, so they line up in README tables.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -29,7 +30,7 @@ async function shot(browser: Browser, name: string, opts: { user: string; url: s
   await page.goto(`${BASE}${opts.url}`, { waitUntil: "networkidle" });
   if (opts.act) await opts.act(page);
   await page.waitForTimeout(400);
-  await page.screenshot({ path: path.join(OUT, `${name}.png`), fullPage: !opts.mobile });
+  await page.screenshot({ path: path.join(OUT, `${name}.png`), fullPage: false });
   await ctx.close();
   console.log("saved", name);
 }
@@ -40,7 +41,11 @@ async function main() {
   const runInjection = async (p: Page) => {
     await p.getByRole("button", { name: "Injection in an email" }).click();
     await p.getByRole("button", { name: "Run agent" }).click();
-    await p.getByText("proposed after reading untrusted content").first().waitFor({ timeout: 120_000 });
+    const hit = p.getByText("proposed after reading untrusted content").first();
+    await hit.waitFor({ timeout: 120_000 });
+    // Frame the decision timeline: the blocked call with its reasons.
+    await hit.scrollIntoViewIfNeeded();
+    await p.evaluate(() => window.scrollBy(0, -260));
   };
   await shot(browser, "playground-injection-dark", { user: "u_alice", url: "/playground", scheme: "dark", act: runInjection });
   await shot(browser, "playground-injection-light", { user: "u_alice", url: "/playground", scheme: "light", act: runInjection });
